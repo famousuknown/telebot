@@ -1,5 +1,5 @@
-providers = ["python"]
 [phases.setup]
-nixPkgs = ['ffmpeg']
-[deploy]
-startCommand = "python voice_bot.py"
+nixPkgs = ["python310", "ffmpeg"]
+
+[start]
+cmd = "python main.py"
