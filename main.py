@@ -13,7 +13,7 @@ load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TARGET_LANG = os.getenv("TARGET_LANG", "en")  # по умолчанию перевод на английский
 
-translator = Translator()
+translator = GoogleTranslator(source='auto', target='en')
 recognizer = sr.Recognizer()
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
