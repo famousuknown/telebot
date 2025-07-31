@@ -1,5 +1,5 @@
 python-telegram-bot==20.3
 googletrans==4.0.0rc1
-SpeechRecognition
+SpeechRecognition==3.10.0
 pydub
 pytz
