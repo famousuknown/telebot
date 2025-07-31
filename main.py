@@ -2,7 +2,7 @@ import os
 from io import BytesIO
 from pydub import AudioSegment
 import speech_recognition as sr
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 from dotenv import load_dotenv
@@ -32,7 +32,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with sr.AudioFile(wav_io) as source:
             audio_data = recognizer.record(source)
             text = recognizer.recognize_google(audio_data, language="ru-RU")  # распознаём по-русски
-            translated = translator.translate(text, dest=TARGET_LANG)
+           translated = GoogleTranslator(source='auto', target='en').translate("Привет")
 
             await update.message.reply_text(f"🗣 Распознано: {text}\n\n🌐 Перевод ({TARGET_LANG}): {translated.text}")
     except sr.UnknownValueError:
