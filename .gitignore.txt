@@ -1,0 +1,7 @@
+# Игнорируем всё лишнее
+*.log
+*.pyc
+__pycache__/
+.env
+venv/
+AppData/
