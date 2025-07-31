@@ -1,0 +1,4 @@
+providers = ["python"]
+
+[deploy]
+startCommand = "python voice_bot.py"
