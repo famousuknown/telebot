@@ -32,7 +32,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with sr.AudioFile(wav_io) as source:
             audio_data = recognizer.record(source)
             text = recognizer.recognize_google(audio_data, language="ru-RU")  # распознаём по-русски
-           translated = GoogleTranslator(source='auto', target='en').translate("Привет")
+            translated = GoogleTranslator(source='auto', target='en').translate("Привет")
 
             await update.message.reply_text(f"🗣 Распознано: {text}\n\n🌐 Перевод ({TARGET_LANG}): {translated.text}")
     except sr.UnknownValueError:
