@@ -19,7 +19,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     voice = await update.message.voice.get_file()
     voice_file = BytesIO()
-    await voice.download(out=voice_file)
+    await voice.download_to_memory(out=voice_file)
     voice_file.seek(0)
 
     audio = AudioSegment.from_ogg(voice_file)
