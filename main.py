@@ -4,16 +4,6 @@ from pydub import AudioSegment
 import speech_recognition as sr
 from deep_translator import GoogleTranslator
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, CallbackQueryHandler, filters, ContextTypes
-from dotenv import load_dotenv
-
-load_dotenv()
-
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TARGET_LANG = os.getenv("TARGET_LANG", "en")
-
-recognizer = sr.Recognizer()
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -22,13 +12,15 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TARGET_LANG = os.getenv("TARGET_LANG", "en")
 
-# === КНОПКИ ===
+recognizer = sr.Recognizer()
+
+# === /start: show mode selection buttons ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
@@ -43,21 +35,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Выберите режим работы бота:", reply_markup=reply_markup)
 
-async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    mode = context.user_data.get("mode")
-    
-    if mode == "mode_voice":
-        # распознать речь → перевести → вернуть текст
-        pass
-    elif mode == "mode_voice_tts":
-        # распознать → перевести → озвучить
-        pass
-    elif mode == "mode_voice_clone":
-        await update.message.reply_text("🎛 Имитация голоса пока не реализована.")
-    else:
-        await update.message.reply_text("⚠️ Сначала выберите режим с помощью /start.")
-
-# === ОБРАБОТКА ВЫБОРА ===
+# === Handle button clicks ===
 async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -73,8 +51,15 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
 
     await query.edit_message_text(text=f"✅ Выбран режим: *{mode_names[selected_mode]}*", parse_mode="Markdown")
 
+# === Handle voice messages ===
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("получено голосовое!!!") #это поможет проверить вызов функции
+    print("получено голосовое!!!")
+
+    mode = context.user_data.get("mode")
+
+    if mode is None:
+        await update.message.reply_text("⚠️ Сначала выберите режим с помощью /start.")
+        return
 
     voice = await update.message.voice.get_file()
     voice_file = BytesIO()
@@ -92,22 +77,25 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = recognizer.recognize_google(audio_data, language="ru-RU")
             translated = GoogleTranslator(source='auto', target=TARGET_LANG).translate(text)
 
-            await update.message.reply_text(
-                f"🗣 Распознано: {text}\n\n🌐 Перевод ({TARGET_LANG}): {translated}"
-            )
+            if mode == "mode_voice":
+                await update.message.reply_text(
+                    f"🗣 Распознано: {text}\n\n🌐 Перевод ({TARGET_LANG}): {translated}"
+                )
+            elif mode == "mode_voice_tts":
+                await update.message.reply_text("🗣 Режим TTS пока не реализован.")
+            elif mode == "mode_voice_clone":
+                await update.message.reply_text("🧬 Имитация голоса пока не реализована.")
     except sr.UnknownValueError:
         await update.message.reply_text("Не удалось распознать речь.")
     except Exception as e:
         await update.message.reply_text(f"Ошибка: {str(e)}")
 
-# 👇 Добавим реакцию на /start, чтобы проверить, что бот активен
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Отправь мне голосовое сообщение на русском, и я переведу его.")
-
+# === Entry point ===
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(handle_mode_selection))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
+
     print("🤖 Бот запущен...")
     app.run_polling()
