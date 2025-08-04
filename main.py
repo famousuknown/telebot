@@ -15,6 +15,8 @@ TARGET_LANG = os.getenv("TARGET_LANG", "en")
 recognizer = sr.Recognizer()
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("получено голосовое!!!") #это поможет проверить вызов функции
+
     voice = await update.message.voice.get_file()
     voice_file = BytesIO()
     await voice.download(out=voice_file)
