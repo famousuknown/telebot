@@ -1,7 +1,9 @@
 import os
+from gtts import gTTS  # ← Добавь в список импортов
 from io import BytesIO
 from pydub import AudioSegment
 import speech_recognition as sr
+import tempfile        # ← Для временных файлов
 from deep_translator import GoogleTranslator
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -92,10 +94,23 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(
                     f"🗣 Распознано: {text}\n\n🌐 Перевод ({TARGET_LANG}): {translated}"
                 )
+
             elif mode == "mode_voice_tts":
-                await update.message.reply_text("🗣 Режим TTS пока не реализован.")
+                # Generate audio using gTTS
+                tts = gTTS(translated, lang=TARGET_LANG)
+
+                with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
+                    tts.save(tmp_file.name)
+                    tmp_file_path = tmp_file.name
+
+                with open(tmp_file_path, "rb") as audio_file:
+                    await update.message.reply_voice(voice=audio_file)
+
+                os.remove(tmp_file_path)
+
             elif mode == "mode_voice_clone":
                 await update.message.reply_text("🧬 Имитация голоса пока не реализована.")
+
     except sr.UnknownValueError:
         await update.message.reply_text("Не удалось распознать речь.")
     except Exception as e:
