@@ -51,6 +51,17 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
 
     await query.edit_message_text(text=f"✅ Выбран режим: *{mode_names[selected_mode]}*", parse_mode="Markdown")
 
+# === Handle text messages ===
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    mode = context.user_data.get("mode")
+
+    if mode == "mode_text":
+        original_text = update.message.text
+        translated = GoogleTranslator(source='auto', target=TARGET_LANG).translate(original_text)
+        await update.message.reply_text(f"🌐 Перевод ({TARGET_LANG}): {translated}")
+    else:
+        await update.message.reply_text("⚠️ Чтобы переводить текст, сначала выберите режим 📄 Текст → Перевод (/start).")
+
 # === Handle voice messages ===
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("получено голосовое!!!")
@@ -95,6 +106,7 @@ if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(handle_mode_selection))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
     print("🤖 Бот запущен...")
