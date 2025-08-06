@@ -1,9 +1,9 @@
 import os
-from gtts import gTTS  # ← Добавь в список импортов
+from gtts import gTTS
 from io import BytesIO
 from pydub import AudioSegment
 import speech_recognition as sr
-import tempfile        # ← Для временных файлов
+import tempfile
 from deep_translator import GoogleTranslator
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -22,8 +22,8 @@ TARGET_LANG = os.getenv("TARGET_LANG", "en")
 
 recognizer = sr.Recognizer()
 
-# === /start: show mode selection buttons ===
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# === Главное меню ===
+def get_main_menu():
     keyboard = [
         [
             InlineKeyboardButton("📄 Текст → Перевод", callback_data="mode_text"),
@@ -34,10 +34,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("🧬 Имитация голоса", callback_data="mode_voice_clone"),
         ]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Выберите режим работы бота:", reply_markup=reply_markup)
+    return InlineKeyboardMarkup(keyboard)
 
-# === Handle button clicks ===
+# === /start ===
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["mode"] = None
+    await update.message.reply_text("👋 Добро пожаловать! Выберите режим:", reply_markup=get_main_menu())
+
+# === Обработка кнопок ===
 async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -51,9 +55,22 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
         "mode_voice_clone": "Имитация голоса (в будущем)",
     }
 
-    await query.edit_message_text(text=f"✅ Выбран режим: *{mode_names[selected_mode]}*", parse_mode="Markdown")
+    back_button = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад в меню", callback_data="back_to_menu")]])
 
-# === Handle text messages ===
+    await query.edit_message_text(
+        text=f"✅ Выбран режим: *{mode_names[selected_mode]}*",
+        parse_mode="Markdown",
+        reply_markup=back_button
+    )
+
+# === Кнопка "назад в меню" ===
+async def back_to_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    context.user_data["mode"] = None
+    await query.edit_message_text("👋 Главное меню:", reply_markup=get_main_menu())
+
+# === Текстовые сообщения ===
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mode = context.user_data.get("mode")
 
@@ -62,12 +79,10 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         translated = GoogleTranslator(source='auto', target=TARGET_LANG).translate(original_text)
         await update.message.reply_text(f"🌐 Перевод ({TARGET_LANG}): {translated}")
     else:
-        await update.message.reply_text("⚠️ Чтобы переводить текст, сначала выберите режим 📄 Текст → Перевод (/start).")
+        await update.message.reply_text("⚠️ Чтобы переводить текст, выберите режим 📄 Текст → Перевод (/start).")
 
-# === Handle voice messages ===
+# === Голосовые сообщения ===
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("получено голосовое!!!")
-
     mode = context.user_data.get("mode")
 
     if mode is None:
@@ -96,9 +111,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
 
             elif mode == "mode_voice_tts":
-                # Generate audio using gTTS
                 tts = gTTS(translated, lang=TARGET_LANG)
-
                 with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
                     tts.save(tmp_file.name)
                     tmp_file_path = tmp_file.name
@@ -116,11 +129,13 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"Ошибка: {str(e)}")
 
-# === Entry point ===
+# === Запуск ===
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(handle_mode_selection))
+    app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^mode_"))
+    app.add_handler(CallbackQueryHandler(back_to_menu, pattern="^back_to_menu$"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
