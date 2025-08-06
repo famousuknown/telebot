@@ -36,12 +36,17 @@ def get_main_menu():
     ]
     return InlineKeyboardMarkup(keyboard)
 
+# === Универсальная кнопка "Назад в меню" ===
+back_button_markup = InlineKeyboardMarkup([
+    [InlineKeyboardButton("🔙 Назад в меню", callback_data="back_to_menu")]
+])
+
 # === /start ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["mode"] = None
     await update.message.reply_text("👋 Добро пожаловать! Выберите режим:", reply_markup=get_main_menu())
 
-# === Обработка кнопок ===
+# === Обработка выбора режима ===
 async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -55,15 +60,13 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
         "mode_voice_clone": "Имитация голоса (в будущем)",
     }
 
-    back_button = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад в меню", callback_data="back_to_menu")]])
-
     await query.edit_message_text(
         text=f"✅ Выбран режим: *{mode_names[selected_mode]}*",
         parse_mode="Markdown",
-        reply_markup=back_button
+        reply_markup=back_button_markup
     )
 
-# === Кнопка "назад в меню" ===
+# === Обработка кнопки "Назад в меню" ===
 async def back_to_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -77,16 +80,22 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if mode == "mode_text":
         original_text = update.message.text
         translated = GoogleTranslator(source='auto', target=TARGET_LANG).translate(original_text)
-        await update.message.reply_text(f"🌐 Перевод ({TARGET_LANG}): {translated}")
+        await update.message.reply_text(
+            f"🌐 Перевод ({TARGET_LANG}): {translated}",
+            reply_markup=back_button_markup
+        )
     else:
-        await update.message.reply_text("⚠️ Чтобы переводить текст, выберите режим 📄 Текст → Перевод (/start).")
+        await update.message.reply_text(
+            "⚠️ Чтобы переводить текст, выберите режим 📄 Текст → Перевод (/start).",
+            reply_markup=back_button_markup
+        )
 
 # === Голосовые сообщения ===
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mode = context.user_data.get("mode")
 
     if mode is None:
-        await update.message.reply_text("⚠️ Сначала выберите режим с помощью /start.")
+        await update.message.reply_text("⚠️ Сначала выберите режим с помощью /start.", reply_markup=back_button_markup)
         return
 
     voice = await update.message.voice.get_file()
@@ -107,7 +116,8 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if mode == "mode_voice":
                 await update.message.reply_text(
-                    f"🗣 Распознано: {text}\n\n🌐 Перевод ({TARGET_LANG}): {translated}"
+                    f"🗣 Распознано: {text}\n\n🌐 Перевод ({TARGET_LANG}): {translated}",
+                    reply_markup=back_button_markup
                 )
 
             elif mode == "mode_voice_tts":
@@ -117,20 +127,23 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     tmp_file_path = tmp_file.name
 
                 with open(tmp_file_path, "rb") as audio_file:
-                    await update.message.reply_voice(voice=audio_file)
+                    await update.message.reply_voice(voice=audio_file, reply_markup=back_button_markup)
 
                 os.remove(tmp_file_path)
 
             elif mode == "mode_voice_clone":
-                await update.message.reply_text("🧬 Имитация голоса пока не реализована.")
+                await update.message.reply_text(
+                    "🧬 Имитация голоса пока не реализована.",
+                    reply_markup=back_button_markup
+                )
 
     except sr.UnknownValueError:
-        await update.message.reply_text("Не удалось распознать речь.")
+        await update.message.reply_text("Не удалось распознать речь.", reply_markup=back_button_markup)
     except Exception as e:
-        await update.message.reply_text(f"Ошибка: {str(e)}")
+        await update.message.reply_text(f"Ошибка: {str(e)}", reply_markup=back_button_markup)
 
 # === Запуск ===
-if __name__ == "__main__":
+if name == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
