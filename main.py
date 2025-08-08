@@ -1,4 +1,5 @@
 import os
+import requests
 from gtts import gTTS
 from io import BytesIO
 from pydub import AudioSegment
@@ -19,7 +20,8 @@ from dotenv import load_dotenv
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TARGET_LANG = os.getenv("TARGET_LANG", "en")
-
+ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY")
+ELEVENLABS_VOICE_CLONE_URL = "https://api.elevenlabs.io/v1/voices/add"
 recognizer = sr.Recognizer()
 
 # === Главное меню ===
@@ -132,16 +134,76 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 os.remove(tmp_file_path)
 
             elif mode == "mode_voice_clone":
-                await update.message.reply_text(
-                    "🧬 Имитация голоса пока не реализована.",
-                    reply_markup=back_button_markup
-                )
+                duration_sec = len(audio) / 1000
+                if duration_sec < 30:
+                    await update.message.reply_text("⚠️ Для клонирования голоса требуется как минимум 30 секунд аудио. Пожалуйста, отправьте более длинное голосовое сообщение.")
+                    return
+    
+                await update.message.reply_text("⏳ Аудио принято. Приступаю к клонированию голоса...")
+                # Здесь будет API-запрос к ElevenLabs — на следующем шаге.
 
     except sr.UnknownValueError:
         await update.message.reply_text("Не удалось распознать речь.", reply_markup=back_button_markup)
     except Exception as e:
         await update.message.reply_text(f"Ошибка: {str(e)}", reply_markup=back_button_markup)
+# === Upload voice sample and create cloned voice ===
+async def clone_user_voice(user_id: int, audio_file_path: str):
+    headers = {
+        "xi-api-key": ELEVENLABS_API_KEY,
+    }
 
+    # Обязательно задаём имя для клонированного голоса
+    voice_name = f"user_{user_id}_voice"
+
+    files = {
+        "name": (None, voice_name),
+        "files": (os.path.basename(audio_file_path), open(audio_file_path, "rb"), "audio/mpeg")
+    }
+
+    response = requests.post(ELEVENLABS_VOICE_CLONE_URL, headers=headers, files=files)
+
+    if response.status_code == 200:
+        data = response.json()
+        voice_id = data.get("voice_id")
+        print(f"✅ Voice cloned successfully. ID: {voice_id}")
+        return voice_id
+    else:
+        print(f"❌ Error cloning voice: {response.text}")
+        return None
+# === Handle voice for cloning ===
+async def handle_voice_clone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    # Проверяем, выбран ли режим клонирования
+    mode = context.user_data.get("mode")
+    if mode != "mode_voice_clone":
+        return
+
+    await update.message.reply_text("🔄 Обработка вашего голосового сообщения. Пожалуйста, подождите...")
+
+    # Скачиваем голосовое сообщение
+    voice = await update.message.voice.get_file()
+    voice_file = BytesIO()
+    await voice.download_to_memory(out=voice_file)
+    voice_file.seek(0)
+
+    # Конвертируем в mp3 (формат, который требует ElevenLabs)
+    audio = AudioSegment.from_ogg(voice_file)
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_mp3:
+        audio.export(tmp_mp3.name, format="mp3")
+        mp3_path = tmp_mp3.name
+
+    # Отправляем на клонирование
+    voice_id = await clone_user_voice(user_id, mp3_path)
+
+    if voice_id:
+        context.user_data["cloned_voice_id"] = voice_id
+        await update.message.reply_text("✅ Ваш голос успешно клонирован и сохранён.")
+    else:
+        await update.message.reply_text("❌ Произошла ошибка при клонировании голоса.")
+
+    # Удаляем временный mp3
+    os.remove(mp3_path)
 # === Запуск ===
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
@@ -151,6 +213,6 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(back_to_menu, pattern="^back_to_menu$"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
-
+    app.add_handler(MessageHandler(filters.VOICE, handle_voice_clone))
     print("🤖 Бот запущен...")
     app.run_polling()
