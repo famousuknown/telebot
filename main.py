@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY")
 
 # User data keys
 LANGUAGE, VOICE_CLONING = range(2)
