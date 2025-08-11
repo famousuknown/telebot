@@ -1,3 +1,4 @@
+langdetected
 gTTS
 python-telegram-bot==20.3
 deep-translator
