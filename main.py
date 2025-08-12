@@ -31,12 +31,17 @@ ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY")
 ELEVENLABS_VOICE_CLONE_URL = "https://api.elevenlabs.io/v1/voices/add"
 DEFAULT_TARGET = os.getenv("TARGET_LANG", "en")
 
+# Проверка обязательных переменных окружения
+if not TELEGRAM_TOKEN:
+    logger.error("TELEGRAM_TOKEN is missing from environment variables!")
+    exit(1)
+
 recognizer = sr.Recognizer()
 
 # -------------------- Список языков --------------------
 LANGS = {
     "English": "en",
-    "Russian": "ru",
+    "Russian": "ru", 
     "Arabic": "ar",
     "Chinese (Simplified)": "zh-CN",
     "Chinese (Traditional)": "zh-TW",
@@ -173,100 +178,138 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         translated = GoogleTranslator(source=src, target=tgt).translate(update.message.text)
         await update.message.reply_text(f"🌐 Translation ({src} → {tgt}):\n\n{translated}", reply_markup=BACK_BUTTON)
     except Exception as e:
+        logger.error(f"Translation error: {e}")
         await update.message.reply_text(f"Translation error: {str(e)}", reply_markup=BACK_BUTTON)
 
 # -------------------- Обработка голоса --------------------
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mode = context.user_data.get("mode")
-    if not mode:
-        await update.message.reply_text("⚠️ Choose a mode first (/start).", reply_markup=BACK_BUTTON)
+    if not mode or not mode.startswith("mode_voice"):
+        await update.message.reply_text("⚠️ Choose a voice mode first (/start).", reply_markup=BACK_BUTTON)
         return
 
     src = context.user_data.get("source_lang") or "auto"
     tgt = context.user_data.get("target_lang") or DEFAULT_TARGET
 
-    voice = await update.message.voice.get_file()
-    voice_file = BytesIO()
-    await voice.download_to_memory(out=voice_file)
-    voice_file.seek(0)
-
-    audio = AudioSegment.from_ogg(voice_file)
-    wav_io = BytesIO()
-    audio.export(wav_io, format="wav")
-    wav_io.seek(0)
-
     try:
+        # Скачивание голосового файла
+        voice = await update.message.voice.get_file()
+        voice_file = BytesIO()
+        await voice.download_to_memory(out=voice_file)
+        voice_file.seek(0)
+
+        # Конвертация из OGG в WAV
+        audio = AudioSegment.from_ogg(voice_file)
+        wav_io = BytesIO()
+        audio.export(wav_io, format="wav")
+        wav_io.seek(0)
+
+        # Распознавание речи
         with sr.AudioFile(wav_io) as source:
             audio_data = recognizer.record(source)
-            sr_lang = None if src == "auto" else src
-            text = recognizer.recognize_google(audio_data, language=sr_lang) if sr_lang else recognizer.recognize_google(audio_data)
-    except sr.UnknownValueError:
-        await update.message.reply_text("Could not understand audio.", reply_markup=BACK_BUTTON)
-        return
-    except Exception as e:
-        await update.message.reply_text(f"Recognition error: {str(e)}", reply_markup=BACK_BUTTON)
-        return
+            try:
+                sr_lang = None if src == "auto" else src
+                text = recognizer.recognize_google(audio_data, language=sr_lang) if sr_lang else recognizer.recognize_google(audio_data)
+            except sr.UnknownValueError:
+                await update.message.reply_text("Could not understand audio.", reply_markup=BACK_BUTTON)
+                return
+            except sr.RequestError as e:
+                logger.error(f"Speech recognition service error: {e}")
+                await update.message.reply_text("Speech recognition service unavailable.", reply_markup=BACK_BUTTON)
+                return
 
-    try:
-        translated = GoogleTranslator(source=src if src != "auto" else "auto", target=tgt).translate(text)
-    except Exception as e:
-        await update.message.reply_text(f"Translation error: {str(e)}", reply_markup=BACK_BUTTON)
-        return
-
-    if mode == "mode_voice":
-        await update.message.reply_text(f"🗣 Recognized: {text}\n\n🌐 Translation ({src} → {tgt}): {translated}", reply_markup=BACK_BUTTON)
-
-    elif mode == "mode_voice_tts":
+        # Перевод текста
         try:
-            tts = gTTS(translated, lang=tgt)
-        except:
-            tts = gTTS(translated, lang=tgt.split("-")[0])
-
-        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
-            tts.save(tmp_file.name)
-            tmp_file_path = tmp_file.name
-
-        with open(tmp_file_path, "rb") as audio_file:
-            await update.message.reply_voice(voice=audio_file, reply_markup=BACK_BUTTON)
-        os.remove(tmp_file_path)
-
-    elif mode == "mode_voice_clone":
-        await update.message.reply_text("⏳ Preparing voice cloning...", reply_markup=BACK_BUTTON)
-        duration_sec = len(audio) / 1000.0
-        if duration_sec < 30:
-            await update.message.reply_text("⚠️ Need at least 30 seconds of audio for cloning.", reply_markup=BACK_BUTTON)
+            translated = GoogleTranslator(source=src if src != "auto" else "auto", target=tgt).translate(text)
+        except Exception as e:
+            logger.error(f"Translation error: {e}")
+            await update.message.reply_text(f"Translation error: {str(e)}", reply_markup=BACK_BUTTON)
             return
 
-        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_mp3:
-            audio.export(tmp_mp3.name, format="mp3")
-            mp3_path = tmp_mp3.name
+        # Обработка в зависимости от режима
+        if mode == "mode_voice":
+            await update.message.reply_text(f"🗣 Recognized: {text}\n\n🌐 Translation ({src} → {tgt}): {translated}", reply_markup=BACK_BUTTON)
 
-        existing = context.user_data.get("cloned_voice_id")
-        voice_id = existing or await clone_user_voice(update.effective_user.id, mp3_path)
+        elif mode == "mode_voice_tts":
+            try:
+                # Попытка создать TTS с полным языковым кодом
+                try:
+                    tts = gTTS(translated, lang=tgt)
+                except:
+                    # Если не удалось, используем только основную часть языкового кода
+                    tts_lang = tgt.split("-")[0] if "-" in tgt else tgt
+                    tts = gTTS(translated, lang=tts_lang)
 
-        if voice_id:
-            context.user_data["cloned_voice_id"] = voice_id
-            synth_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-            headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
-            payload = {"text": translated, "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}
-            r = requests.post(synth_url, headers=headers, json=payload)
-            if r.status_code == 200:
-                tmp_out = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
-                tmp_out.write(r.content)
-                tmp_out.flush()
-                tmp_out_path = tmp_out.name
-                tmp_out.close()
+                # Сохранение и отправка аудиофайла
+                with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
+                    tts.save(tmp_file.name)
+                    tmp_file_path = tmp_file.name
 
-                with open(tmp_out_path, "rb") as af:
-                    await update.message.reply_voice(voice=af, reply_markup=BACK_BUTTON)
-                os.remove(tmp_out_path)
-            else:
-                await update.message.reply_text(f"❌ Cloning/TTS error: {r.text}", reply_markup=BACK_BUTTON)
-        else:
-            await update.message.reply_text("❌ Voice cloning failed.", reply_markup=BACK_BUTTON)
+                with open(tmp_file_path, "rb") as audio_file:
+                    await update.message.reply_voice(voice=audio_file, reply_markup=BACK_BUTTON)
+                
+                # Удаление временного файла
+                os.remove(tmp_file_path)
+                
+            except Exception as e:
+                logger.error(f"TTS error: {e}")
+                await update.message.reply_text(f"TTS generation error: {str(e)}", reply_markup=BACK_BUTTON)
 
-        if os.path.exists(mp3_path):
-            os.remove(mp3_path)
+        elif mode == "mode_voice_clone":
+            if not ELEVENLABS_API_KEY:
+                await update.message.reply_text("⚠️ ElevenLabs API key not configured.", reply_markup=BACK_BUTTON)
+                return
+                
+            await update.message.reply_text("⏳ Preparing voice cloning...", reply_markup=BACK_BUTTON)
+            duration_sec = len(audio) / 1000.0
+            if duration_sec < 30:
+                await update.message.reply_text("⚠️ Need at least 30 seconds of audio for cloning.", reply_markup=BACK_BUTTON)
+                return
+
+            # Сохранение аудио как MP3 для клонирования
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_mp3:
+                audio.export(tmp_mp3.name, format="mp3")
+                mp3_path = tmp_mp3.name
+
+            try:
+                # Клонирование или использование существующего голоса
+                existing = context.user_data.get("cloned_voice_id")
+                voice_id = existing or await clone_user_voice(update.effective_user.id, mp3_path)
+
+                if voice_id:
+                    context.user_data["cloned_voice_id"] = voice_id
+                    
+                    # Синтез речи с клонированным голосом
+                    synth_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+                    headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
+                    payload = {"text": translated, "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}
+                    
+                    r = requests.post(synth_url, headers=headers, json=payload, timeout=60)
+                    if r.status_code == 200:
+                        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_out:
+                            tmp_out.write(r.content)
+                            tmp_out_path = tmp_out.name
+
+                        with open(tmp_out_path, "rb") as af:
+                            await update.message.reply_voice(voice=af, reply_markup=BACK_BUTTON)
+                        os.remove(tmp_out_path)
+                    else:
+                        logger.error(f"ElevenLabs synthesis error: {r.text}")
+                        await update.message.reply_text(f"❌ Voice synthesis error: {r.status_code}", reply_markup=BACK_BUTTON)
+                else:
+                    await update.message.reply_text("❌ Voice cloning failed.", reply_markup=BACK_BUTTON)
+                    
+            except Exception as e:
+                logger.error(f"Voice cloning error: {e}")
+                await update.message.reply_text(f"❌ Voice cloning error: {str(e)}", reply_markup=BACK_BUTTON)
+            finally:
+                # Удаление временного файла
+                if os.path.exists(mp3_path):
+                    os.remove(mp3_path)
+
+    except Exception as e:
+        logger.error(f"Voice processing error: {e}")
+        await update.message.reply_text(f"Error processing voice message: {str(e)}", reply_markup=BACK_BUTTON)
 
 # -------------------- Клонирование голоса --------------------
 async def clone_user_voice(user_id: int, audio_file_path: str):
@@ -276,19 +319,23 @@ async def clone_user_voice(user_id: int, audio_file_path: str):
 
     headers = {"xi-api-key": ELEVENLABS_API_KEY}
     voice_name = f"user_{user_id}_voice"
-    files = {
-        "name": (None, voice_name),
-        "files": (os.path.basename(audio_file_path), open(audio_file_path, "rb"), "audio/mpeg"),
-    }
-
+    
     try:
-        resp = requests.post(ELEVENLABS_VOICE_CLONE_URL, headers=headers, files=files, timeout=60)
+        with open(audio_file_path, "rb") as audio_file:
+            files = {
+                "name": (None, voice_name),
+                "files": (os.path.basename(audio_file_path), audio_file, "audio/mpeg"),
+            }
+            
+            resp = requests.post(ELEVENLABS_VOICE_CLONE_URL, headers=headers, files=files, timeout=60)
+            
         if resp.status_code in (200, 201):
             data = resp.json()
             return data.get("voice_id") or data.get("id") or data.get("voice", {}).get("voice_id")
         else:
-            logger.error(f"Cloning error: {resp.text}")
+            logger.error(f"Cloning error {resp.status_code}: {resp.text}")
             return None
+            
     except Exception as e:
         logger.error(f"Exception during cloning: {e}")
         return None
