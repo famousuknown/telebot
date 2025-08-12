@@ -27,7 +27,34 @@ DEFAULT_TARGET = os.getenv("TARGET_LANG", "en")
 
 recognizer = sr.Recognizer()
 
-# Более понятные названия языков с флагами
+# Универсальная функция для безопасного создания меню
+async def safe_send_menu(query_or_message, context, is_query=True):
+    """Безопасно отправляет главное меню"""
+    menu_text = get_status_text(context)
+    menu_markup = get_main_menu()
+    
+    if is_query:
+        query = query_or_message
+        try:
+            await query.edit_message_text(
+                text=menu_text,
+                parse_mode="Markdown", 
+                reply_markup=menu_markup
+            )
+        except Exception:
+            await query.answer("Opening menu...")
+            await query.message.reply_text(
+                text=menu_text,
+                parse_mode="Markdown",
+                reply_markup=menu_markup
+            )
+    else:
+        message = query_or_message
+        await message.reply_text(
+            text=menu_text,
+            parse_mode="Markdown",
+            reply_markup=menu_markup
+        )
 LANGS = {
     "🇺🇸 English": "en",
     "🇷🇺 Русский": "ru", 
@@ -261,14 +288,10 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return
 
-    # Back to menu
+    # Back to menu  
     if data == "back_to_menu":
         context.user_data["mode"] = None
-        await query.edit_message_text(
-            text=get_status_text(context),
-            parse_mode="Markdown",
-            reply_markup=get_main_menu()
-        )
+        await safe_send_menu(query, context, is_query=True)
         return
 
 # Handle language selection callbacks for src_/tgt_
@@ -279,11 +302,7 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if data == "back_to_menu":
         context.user_data["mode"] = None
-        await query.edit_message_text(
-            text=get_status_text(context),
-            parse_mode="Markdown",
-            reply_markup=get_main_menu()
-        )
+        await safe_send_menu(query, context, is_query=True)
         return
 
     # Показать все языки
@@ -596,6 +615,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     info_text = f"📝 **Original:** {text}\n\n🌐 **Translated:** {translated}"
                     if len(info_text) > 500:
                         await update.message.reply_text(info_text, parse_mode="Markdown")
+                    
+                    # Отправляем новое меню для удобства
+                    await safe_send_menu(update.message, context, is_query=False)
 
                     os.remove(tmp_out_path)
                 else:
