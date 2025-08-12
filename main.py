@@ -320,25 +320,32 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(f"⏳ Preparing voice cloning from {src} to {tgt}... this may take a while.", reply_markup=BACK_BUTTON)
 
             # voice cloning requires ElevenLabs subscription & API key
-            # Ensure sample length at least 30s
-            duration_sec = len(audio) / 1000.0
-            if duration_sec < 30:
-                await update.message.reply_text("⚠️ For voice cloning we need at least 30 seconds of audio. Please send longer sample.", reply_markup=BACK_BUTTON)
-                return
-
-            # Save temp mp3 to upload
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_mp3:
-                audio.export(tmp_mp3.name, format="mp3")
-                mp3_path = tmp_mp3.name
-
-            # Try to reuse existing cloned voice id for this user
+            
+            # ИСПРАВЛЕНИЕ: Сначала проверяем есть ли уже клонированный голос
             user_id = update.effective_user.id
             existing = context.user_data.get("cloned_voice_id")
+            
             if existing:
+                # Голос уже клонирован, используем его без проверки длительности
                 voice_id = existing
             else:
+                # Голос не клонирован, проверяем длительность для клонирования
+                duration_sec = len(audio) / 1000.0
+                if duration_sec < 30:
+                    await update.message.reply_text("⚠️ For voice cloning we need at least 30 seconds of audio for the first sample. Please send longer sample.", reply_markup=BACK_BUTTON)
+                    return
+
+                # Save temp mp3 to upload
+                with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_mp3:
+                    audio.export(tmp_mp3.name, format="mp3")
+                    mp3_path = tmp_mp3.name
+
                 # передаем информацию о языке источника при клонировании
                 voice_id = await clone_user_voice(user_id, mp3_path, src)
+                
+                # cleanup sample
+                if os.path.exists(mp3_path):
+                    os.remove(mp3_path)
 
             if voice_id:
                 context.user_data["cloned_voice_id"] = voice_id
