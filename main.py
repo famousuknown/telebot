@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 # Load env vars
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY")  # ElevenLabs API key (if you use cloning)
+ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY")
 ELEVENLABS_VOICE_CLONE_URL = "https://api.elevenlabs.io/v1/voices/add"
 
 # Default target language if not chosen
@@ -28,11 +28,7 @@ DEFAULT_TARGET = os.getenv("TARGET_LANG", "en")
 
 recognizer = sr.Recognizer()
 
-# -------------------------
 # Supported languages mapping
-# display name -> translation/tts/eleven-code
-# Add or remove languages here as you need
-# -------------------------
 LANGS = {
     "English": "en",
     "Russian": "ru",
@@ -46,29 +42,22 @@ LANGS = {
     "Portuguese": "pt",
     "Hindi": "hi",
     "Pashto": "ps",
-    # add more as required...
 }
 
-# Utility to build keyboard of language options (returns InlineKeyboardMarkup)
+# Build keyboard of language options
 def build_lang_keyboard(prefix: str):
-    # prefix should be 'src_' or 'tgt_' to distinguish callbacks
-    buttons = []
-    row = []
-    i = 0
-    for name, code in LANGS.items():
-        cb = f"{prefix}{code}"
-        row.append(InlineKeyboardButton(name, callback_data=cb))
-        i += 1
+    buttons, row = [], []
+    for i, (name, code) in enumerate(LANGS.items(), start=1):
+        row.append(InlineKeyboardButton(name, callback_data=f"{prefix}{code}"))
         if i % 2 == 0:
             buttons.append(row)
             row = []
     if row:
         buttons.append(row)
-    # add Back to main menu button
     buttons.append([InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")])
     return InlineKeyboardMarkup(buttons)
 
-# Main menu (re-usable)
+# Main menu
 def get_main_menu():
     keyboard = [
         [
@@ -88,9 +77,8 @@ def get_main_menu():
 
 BACK_BUTTON = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")]])
 
-# /start handler
+# /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Initialize user state
     context.user_data.setdefault("mode", None)
     context.user_data.setdefault("source_lang", None)
     context.user_data.setdefault("target_lang", DEFAULT_TARGET)
@@ -99,15 +87,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_main_menu(),
     )
 
-# Handle mode selection callbacks
+# Mode selection
 async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
 
-    # Set the chosen mode
     if data.startswith("mode_"):
-        mode = data  # mode_text / mode_voice / mode_voice_tts / mode_voice_clone
+        mode = data
         context.user_data["mode"] = mode
         mode_readable = {
             "mode_text": "Text → Translate",
@@ -115,7 +102,6 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
             "mode_voice_tts": "Voice → Translate + TTS",
             "mode_voice_clone": "Voice cloning (experimental)",
         }.get(mode, mode)
-        # Inform the user and show Back button
         await query.edit_message_text(
             text=f"✅ Selected mode: *{mode_readable}*\n\nFrom: `{context.user_data.get('source_lang') or 'auto-detect'}`\nTo: `{context.user_data.get('target_lang')}`",
             parse_mode="Markdown",
@@ -123,7 +109,6 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return
 
-    # Change source language
     if data == "change_source":
         await query.edit_message_text(
             text="Select source language (the language you will speak/type):",
@@ -131,7 +116,6 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return
 
-    # Change target language
     if data == "change_target":
         await query.edit_message_text(
             text="Select target language (the language you want to receive):",
@@ -139,13 +123,12 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return
 
-    # Back to menu
     if data == "back_to_menu":
         context.user_data["mode"] = None
         await query.edit_message_text("Main menu:", reply_markup=get_main_menu())
         return
 
-# Handle language selection callbacks for src_/tgt_
+# Language choice
 async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -157,7 +140,7 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     if data.startswith("src_"):
-        code = data[len("src_") :]
+        code = data[len("src_"):]
         context.user_data["source_lang"] = code
         await query.edit_message_text(
             text=f"✅ Source language set to `{code}`",
@@ -167,7 +150,7 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     if data.startswith("tgt_"):
-        code = data[len("tgt_") :]
+        code = data[len("tgt_"):]
         context.user_data["target_lang"] = code
         await query.edit_message_text(
             text=f"✅ Target language set to `{code}`",
@@ -176,7 +159,7 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return
 
-# Handle text messages (when mode_text is active)
+# Handle text translation
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mode = context.user_data.get("mode")
     if mode != "mode_text":
@@ -186,10 +169,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     src = context.user_data.get("source_lang") or "auto"
     tgt = context.user_data.get("target_lang") or DEFAULT_TARGET
 
-    original_text = update.message.text
     try:
-        # translate using deep_translator GoogleTranslator
-        translated = GoogleTranslator(source=src, target=tgt).translate(original_text)
+        translated = GoogleTranslator(source=src, target=tgt).translate(update.message.text)
         await update.message.reply_text(f"🌐 Translation ({src} → {tgt}):\n\n{translated}", reply_markup=BACK_BUTTON)
     except Exception as e:
         await update.message.reply_text(f"Translation error: {str(e)}", reply_markup=BACK_BUTTON)
@@ -204,38 +185,32 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     src = context.user_data.get("source_lang") or "auto"
     tgt = context.user_data.get("target_lang") or DEFAULT_TARGET
 
-    # Download voice file
+    # Download and convert
     voice = await update.message.voice.get_file()
     voice_file = BytesIO()
-    # download_to_memory is supported in PTB File object
     await voice.download_to_memory(out=voice_file)
     voice_file.seek(0)
 
-    # Convert ogg -> wav
     audio = AudioSegment.from_ogg(voice_file)
     wav_io = BytesIO()
     audio.export(wav_io, format="wav")
     wav_io.seek(0)
 
+    # Recognition
     try:
-        # Speech recognition
         with sr.AudioFile(wav_io) as source:
             audio_data = recognizer.record(source)
-            # If user set explicit source language, use it; otherwise use 'ru-RU' by default if src=='auto' use 'auto' and let recognizer default
-            recog_lang = None if src == "auto" else src
-            if recog_lang and "-" in recog_lang:
-                # speech_recognition expects codes like 'ru-RU'; convert 'zh-CN' -> 'zh-CN' OK, 'ps' -> 'ps' may not be supported
-                sr_lang = recog_lang
-            elif recog_lang:
-                # try two-letter to sr format
-                sr_lang = recog_lang
-            else:
-                sr_lang = None
 
-            if sr_lang:
-                text = recognizer.recognize_google(audio_data, language=sr_lang)
+            # ✅ Always use chosen source_lang for voice
+            if src != "auto":
+                recog_lang = src
             else:
-                text = recognizer.recognize_google(audio_data)  # autos
+                recog_lang = None
+
+            if recog_lang:
+                text = recognizer.recognize_google(audio_data, language=recog_lang)
+            else:
+                text = recognizer.recognize_google(audio_data)
     except sr.UnknownValueError:
         await update.message.reply_text("Could not understand audio.", reply_markup=BACK_BUTTON)
         return
@@ -250,20 +225,16 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Translation error: {str(e)}", reply_markup=BACK_BUTTON)
         return
 
-    # Respond based on mode
+    # Respond
     try:
         if mode == "mode_voice":
             await update.message.reply_text(f"🗣 Recognized: {text}\n\n🌐 Translation ({src} → {tgt}): {translated}", reply_markup=BACK_BUTTON)
 
         elif mode == "mode_voice_tts":
-            # Generate TTS with gTTS (may not support all codes; gTTS uses language codes like 'zh-CN' -> 'zh-cn' sometimes)
-            tts_lang = tgt
-            # gTTS expects e.g. 'zh-CN' as 'zh-cn' sometimes — try direct first
             try:
-                tts = gTTS(translated, lang=tts_lang)
+                tts = gTTS(translated, lang=tgt)
             except Exception:
-                # fallback to two-letter
-                tts = gTTS(translated, lang=tts_lang.split("-")[0])
+                tts = gTTS(translated, lang=tgt.split("-")[0])
 
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
                 tts.save(tmp_file.name)
@@ -271,109 +242,18 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             with open(tmp_file_path, "rb") as audio_file:
                 await update.message.reply_voice(voice=audio_file, reply_markup=BACK_BUTTON)
-
             os.remove(tmp_file_path)
-
-        elif mode == "mode_voice_clone":
-            # voice cloning requires ElevenLabs subscription & API key
-            # We send a message and start cloning flow: if already cloned, reuse user's cloned voice id
-            await update.message.reply_text("⏳ Preparing voice cloning... this may take a while.", reply_markup=BACK_BUTTON)
-
-            # Ensure sample length at least 30s
-            duration_sec = len(audio) / 1000.0
-            if duration_sec < 30:
-                await update.message.reply_text("⚠️ For voice cloning we need at least 30 seconds of audio. Please send longer sample.", reply_markup=BACK_BUTTON)
-                return
-
-            # Save temp mp3 to upload
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_mp3:
-                audio.export(tmp_mp3.name, format="mp3")
-                mp3_path = tmp_mp3.name
-
-            # Try to reuse existing cloned voice id for this user
-            user_id = update.effective_user.id
-            existing = context.user_data.get("cloned_voice_id")
-            if existing:
-                voice_id = existing
-            else:
-                voice_id = await clone_user_voice(user_id, mp3_path)
-
-            if voice_id:
-                context.user_data["cloned_voice_id"] = voice_id
-                # After cloning, synthesize translated text in this voice
-                # NOTE: ElevenLabs TTS synth endpoint and payload may differ; here's a simplified POST example (adjust to ElevenLabs API)
-                synth_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-                headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
-                payload = {"text": translated, "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}
-                r = requests.post(synth_url, headers=headers, json=payload)
-                if r.status_code == 200:
-                    # ElevenLabs returns audio bytes
-                    tmp_out = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
-                    tmp_out.write(r.content)
-                    tmp_out.flush()
-                    tmp_out_path = tmp_out.name
-                    tmp_out.close()
-
-                    with open(tmp_out_path, "rb") as af:
-                        await update.message.reply_voice(voice=af, reply_markup=BACK_BUTTON)
-
-                    os.remove(tmp_out_path)
-                else:
-                    await update.message.reply_text(f"❌ Cloning/TTS error: {r.text}", reply_markup=BACK_BUTTON)
-            else:
-                await update.message.reply_text("❌ Voice cloning failed.", reply_markup=BACK_BUTTON)
-
-            # cleanup sample
-            if os.path.exists(mp3_path):
-                os.remove(mp3_path)
 
     except Exception as e:
         await update.message.reply_text(f"Error while responding: {str(e)}", reply_markup=BACK_BUTTON)
 
-# Helper: clone user's voice using ElevenLabs (synchronous request)
-async def clone_user_voice(user_id: int, audio_file_path: str):
-    if not ELEVENLABS_API_KEY:
-        print("ElevenLabs API key is missing.")
-        return None
-
-    headers = {"xi-api-key": ELEVENLABS_API_KEY}
-    voice_name = f"user_{user_id}_voice"
-
-    # The expected form-data keys depend on ElevenLabs API. This is a generic example.
-    files = {
-        "name": (None, voice_name),
-        "files": (os.path.basename(audio_file_path), open(audio_file_path, "rb"), "audio/mpeg"),
-    }
-
-    try:
-        resp = requests.post(ELEVENLABS_VOICE_CLONE_URL, headers=headers, files=files, timeout=60)
-        if resp.status_code in (200, 201):
-            data = resp.json()
-            # Attempt to locate voice id in response
-            voice_id = data.get("voice_id") or data.get("id") or data.get("voice", {}).get("voice_id")
-            print(f"Voice cloned: {voice_id}")
-            return voice_id
-        else:
-            print(f"❌ Cloning error: {resp.text}")
-            return None
-    except Exception as e:
-        print(f"Exception during cloning: {e}")
-        return None
-
-# Entry point
+# Run bot
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-
-    # Command /start
     app.add_handler(CommandHandler("start", start))
-
-    # Callbacks
     app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_|change_source|change_target|back_to_menu)"))
     app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|back_to_menu)"))
-
-    # Messages handlers
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
-
     print("🤖 Bot started...")
     app.run_polling()
