@@ -88,7 +88,7 @@ def get_language_menu():
         ("Spanish", "es"),
         ("French", "fr"),
         ("Italian", "it"),
-        ("Chinese", "zh"),
+        ("Chinese", "zh-CN"),
         ("Arabic", "ar"),
     ]
     keyboard = []
