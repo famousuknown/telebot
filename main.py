@@ -213,6 +213,7 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
     # Reset voice clone
     if data == "reset_clone":
         context.user_data["cloned_voice_id"] = None
+        await query.answer("Voice clone reset!")  # Используем answer вместо edit
         await query.edit_message_text(
             text="✅ Voice clone reset! Next voice message will create a new clone.",
             reply_markup=get_settings_menu(),
@@ -542,7 +543,14 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if voice_id:
                 context.user_data["cloned_voice_id"] = voice_id
-                await processing_msg.edit_text("🎤 Generating cloned voice...")
+                
+                # Обновляем или удаляем processing message
+                try:
+                    await processing_msg.edit_text("🎤 Generating cloned voice...")
+                except:
+                    # Если не удалось отредактировать, отправляем новое
+                    await processing_msg.delete()
+                    processing_msg = await update.message.reply_text("🎤 Generating cloned voice...")
                 
                 synth_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
                 headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
@@ -560,7 +568,12 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     payload["voice_settings"]["style"] = 0.2
                     payload["voice_settings"]["use_speaker_boost"] = True
                 
+                print(f"Using voice_id: {voice_id} for synthesis")  # Отладка
+                print(f"Payload: {payload}")  # Отладка
+                
                 r = requests.post(synth_url, headers=headers, json=payload)
+                print(f"ElevenLabs response status: {r.status_code}")  # Отладка
+                
                 if r.status_code == 200:
                     tmp_out = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
                     tmp_out.write(r.content)
@@ -569,7 +582,10 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     tmp_out.close()
 
                     # Удаляем processing message
-                    await processing_msg.delete()
+                    try:
+                        await processing_msg.delete()
+                    except:
+                        pass
 
                     # Отправляем результат
                     caption = f"🎭 Your voice: {src_display} → {tgt_display}"
@@ -578,11 +594,12 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     
                     # Детали отдельно если текст длинный
                     info_text = f"📝 **Original:** {text}\n\n🌐 **Translated:** {translated}"
-                    if len(info_text) > 500:  # Для длинного текста отправляем отдельно
+                    if len(info_text) > 500:
                         await update.message.reply_text(info_text, parse_mode="Markdown")
 
                     os.remove(tmp_out_path)
                 else:
+                    print(f"ElevenLabs error response: {r.text}")  # Отладка
                     await processing_msg.edit_text(f"❌ **Voice synthesis failed**\n\n{r.text}", parse_mode="Markdown", reply_markup=BACK_BUTTON)
             else:
                 await processing_msg.edit_text("❌ **Voice cloning failed**\n\nTry recording clearer/longer audio.", parse_mode="Markdown", reply_markup=BACK_BUTTON)
