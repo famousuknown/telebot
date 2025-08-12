@@ -78,7 +78,7 @@ def get_lang_display_name(code):
     return code
 
 # Функция для быстрого выбора популярных языков
-def get_quick_lang_keyboard(prefix: str):
+def get_quick_lang_keyboard(prefix: str, show_skip=False):
     popular_langs = [
         ("🇺🇸 English", "en"),
         ("🇷🇺 Русский", "ru"),
@@ -99,6 +99,11 @@ def get_quick_lang_keyboard(prefix: str):
     
     # Кнопка "Больше языков"
     buttons.append([InlineKeyboardButton("🌍 More languages", callback_data=f"{prefix}more")])
+    
+    # Кнопка Skip для целевого языка (если уже выбран)
+    if show_skip:
+        buttons.append([InlineKeyboardButton("⏭️ Keep current target", callback_data="skip_target")])
+    
     buttons.append([InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")])
     return InlineKeyboardMarkup(buttons)
 
@@ -223,12 +228,19 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
 • Set source language for better accuracy
 • Voice cloning needs 30+ seconds first time
 • After cloning, any length works
-• Use settings to change languages
+• **Keep voice under 60s for best recognition**
 
 🔧 **Troubleshooting:**
 • Can't understand audio? Check source language
 • Bad translation? Try different source language
-• Clone failed? Send longer/clearer audio"""
+• Clone failed? Send longer/clearer audio
+• **Partial recognition? Audio too long (60s+ limit)**
+• Text cut off? Split into shorter messages
+
+⏱️ **Audio Limits:**
+• 🎤 Recognition: ~60 seconds max
+• 🎭 First clone: 30+ seconds required  
+• 🔊 After clone: any length works"""
         
         await query.edit_message_text(
             text=help_text,
@@ -316,14 +328,31 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return
 
+    # Skip target selection (keep current)
+    if data == "skip_target":
+        current_target = context.user_data.get("target_lang", DEFAULT_TARGET)
+        target_name = get_lang_display_name(current_target)
+        await query.edit_message_text(
+            text=f"⏭️ **Keeping current target:** {target_name}\n\n🎯 **Setup complete!**\n\n{get_status_text(context)}",
+            parse_mode="Markdown",
+            reply_markup=get_main_menu(),
+        )
+        return
+
     if data.startswith("src_"):
         code = data[len("src_") :]
         context.user_data["source_lang"] = code
         lang_name = get_lang_display_name(code)
+        
+        # Проверяем есть ли уже целевой язык
+        current_target = context.user_data.get("target_lang")
+        show_skip = bool(current_target)
+        
+        # Предлагаем сразу выбрать целевой язык
         await query.edit_message_text(
-            text=f"✅ **Source language set:** {lang_name}\n\n{get_status_text(context)}",
+            text=f"✅ **Source language set:** {lang_name}\n\n🌐 **Now select target language** (the language you want):\n\n*Quick selection:*",
             parse_mode="Markdown",
-            reply_markup=get_main_menu(),
+            reply_markup=get_quick_lang_keyboard("tgt_", show_skip=show_skip),
         )
         return
 
@@ -331,8 +360,10 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         code = data[len("tgt_") :]
         context.user_data["target_lang"] = code
         lang_name = get_lang_display_name(code)
+        
+        # Показываем что настройка завершена и возвращаемся в главное меню
         await query.edit_message_text(
-            text=f"✅ **Target language set:** {lang_name}\n\n{get_status_text(context)}",
+            text=f"✅ **Target language set:** {lang_name}\n\n🎯 **Setup complete!**\n\n{get_status_text(context)}",
             parse_mode="Markdown",
             reply_markup=get_main_menu(),
         )
@@ -435,6 +466,12 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Convert ogg -> wav
     audio = AudioSegment.from_ogg(voice_file)
+    
+    # Проверяем длительность и предупреждаем
+    duration_sec = len(audio) / 1000.0
+    if duration_sec > 55:  # Google limit ~60 seconds
+        await processing_msg.edit_text("⚠️ **Long audio detected**\n\n🎤 Your audio: {:.1f}s\n⏱️ Google limit: ~60s\n\n📝 Only first part may be recognized...\n\n🔍 Processing...".format(duration_sec), parse_mode="Markdown")
+    
     wav_io = BytesIO()
     audio.export(wav_io, format="wav")
     wav_io.seek(0)
@@ -461,7 +498,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
     except sr.UnknownValueError:
         await processing_msg.edit_text(
-            "❌ **Could not understand audio**\n\nTry:\n• Speaking more clearly\n• Checking source language\n• Recording in quieter environment",
+            "❌ **Could not understand audio**\n\nTry:\n• Speaking more clearly\n• Checking source language\n• Recording in quieter environment\n• **Shorter messages (under 60s)**",
             parse_mode="Markdown",
             reply_markup=BACK_BUTTON
         )
@@ -635,7 +672,7 @@ if __name__ == "__main__":
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_|settings_menu|change_source|change_target|back_to_menu|help|reset_clone)"))
-    app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|back_to_menu)"))
+    app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|back_to_menu|skip_target)"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
