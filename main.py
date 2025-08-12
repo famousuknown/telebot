@@ -369,10 +369,18 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     tmp_out_path = tmp_out.name
                     tmp_out.close()
 
-                    # Показываем пользователю информацию о языках
+                    # Отправляем информацию отдельным сообщением чтобы избежать лимита caption
                     info_text = f"🎤 Source language: {src}\n🗣 Recognized: {text}\n🌐 Translated to {tgt}: {translated}"
-                    with open(tmp_out_path, "rb") as af:
-                        await update.message.reply_voice(voice=af, caption=info_text, reply_markup=BACK_BUTTON)
+                    
+                    # Проверяем длину caption и обрезаем если нужно
+                    if len(info_text) > 1000:  # Оставляем запас
+                        short_info = f"🎤 {src} → {tgt} (voice cloned)"
+                        await update.message.reply_text(info_text, reply_markup=BACK_BUTTON)
+                        with open(tmp_out_path, "rb") as af:
+                            await update.message.reply_voice(voice=af, caption=short_info)
+                    else:
+                        with open(tmp_out_path, "rb") as af:
+                            await update.message.reply_voice(voice=af, caption=info_text, reply_markup=BACK_BUTTON)
 
                     os.remove(tmp_out_path)
                 else:
