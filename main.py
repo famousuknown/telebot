@@ -29,6 +29,7 @@ recognizer = sr.Recognizer()
 # Реферальная система и лимиты
 FREE_VOICE_LIMIT = 3  # Лимит для обычных пользователей
 PREMIUM_REFERRAL_CODES = {
+    "just_me": "Sam",
     "blogger_alex": "Alex Tech",
     "blogger_maria": "Maria Voice", 
     "blogger_john": "John AI",
@@ -257,8 +258,8 @@ Ready to start?""",
         "premium_activated": """✨ **PREMIUM ACCESS ACTIVATED!** ✨
 
 🎭 **Unlimited voice cloning**
-🌟 **Referral code:** {code}
-👤 **Blogger:** {blogger}
+"🌟 **Referral code:** `{code}`"
+"👤 **Blogger:** `{blogger}`"
 
 🚀 **You now have unlimited access to all features!**""",
 
@@ -443,8 +444,8 @@ Ready to start?""",
         "premium_activated": """✨ **ПРЕМИУМ ДОСТУП АКТИВИРОВАН!** ✨
 
 🎭 **Безлимитное клонирование голоса**
-🌟 **Реферальный код:** {code}
-👤 **Блогер:** {blogger}
+🌟 **Реферальный код:** `{code}`
+👤 **Блогер:** `{blogger}`
 
 🚀 **Теперь у вас безлимитный доступ ко всем функциям!**""",
 
