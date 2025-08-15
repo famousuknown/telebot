@@ -1302,7 +1302,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
             
-            # 🆕 НОВОЕ: Проверяем лимиты перед клонированием
+            # 🆕 ИСПРАВЛЕНО: Проверяем лимиты перед КАЖДЫМ использованием
             user_id = update.effective_user.id
             can_use, limit_msg = check_voice_limit(context, user_id)
             
@@ -1313,6 +1313,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=get_back_button(context)
                 )
                 return
+            
+            # 🆕 ИСПРАВЛЕНО: Увеличиваем счетчик перед обработкой (не только при клонировании)
+            increment_voice_count(context)
                 
             existing = context.user_data.get("cloned_voice_id")
             
@@ -1341,10 +1344,6 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 if os.path.exists(mp3_path):
                     os.remove(mp3_path)
-                
-                # 🆕 НОВОЕ: Увеличиваем счетчик только при успешном клонировании
-                if voice_id:
-                    increment_voice_count(context)
 
             if voice_id:
                 context.user_data["cloned_voice_id"] = voice_id
@@ -1421,7 +1420,6 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode="Markdown", 
                     reply_markup=get_back_button(context)
                 )
-
     except Exception as e:
         await processing_msg.edit_text(
             get_text(context, "error_occurred", error=str(e)), 
