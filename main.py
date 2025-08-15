@@ -504,7 +504,7 @@ def get_main_menu(context):
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
-    def get_settings_menu(context):
+def get_settings_menu(context):
     keyboard = [
         [InlineKeyboardButton(get_text(context, "btn_source_lang"), callback_data="change_source")],
         [InlineKeyboardButton(get_text(context, "btn_target_lang"), callback_data="change_target")],
