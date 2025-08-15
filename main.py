@@ -27,281 +27,11 @@ DEFAULT_TARGET = os.getenv("TARGET_LANG", "en")
 
 recognizer = sr.Recognizer()
 
-# Многоязычные тексты интерфейса с акцентом на клонирование
-INTERFACE_TEXTS = {
-    "en": {
-        "welcome_title": "🎭✨ **AI VOICE CLONE BOT** ✨🎭",
-        "welcome_text": "🌟 **Clone your voice and speak ANY language fluently!**\n\n🎭 **PREMIUM FEATURE:**\n• Clone your unique voice\n• Speak in perfect accent in any language\n• Keep your personality across languages\n\n📱 **Free Features:**\n• 📝 Basic text translation\n• 🎤 Voice recognition\n• 🔊 Simple text-to-speech\n\n✨ **Ready to clone your voice?**",
-        
-        # Новые тексты для клонирования
-        "clone_info_title": "⭐ **VOICE CLONING - PREMIUM FEATURE** ⭐",
-        "clone_info_text": """🎭 **What makes this special:**
-• Your unique voice, not a robot
-• Perfect accent in any target language  
-• Maintains your speaking style and emotions
-• Works with 50+ languages
-
-🎯 **How it works:**
-1. Record 30+ seconds in your native language
-2. AI learns your voice characteristics  
-3. Speak any text in perfect target language accent
-
-💫 **Use cases:**
-• Content creation in multiple languages
-• Language learning with your own voice
-• Professional voiceovers
-• Personal messages to international friends
-
-Ready to start?""",
-        
-        "clone_step1_title": "🎭 **Voice Clone Setup** (Step 1/2)",
-        "clone_step1_text": "🗣️ **Select your native language:**\n\n*The language you'll record in (need 30+ seconds)*",
-        
-        "clone_step2_title": "🎭 **Voice Clone Setup** (Step 2/2)", 
-        "clone_step2_text": "🎯 **Select target language:**\n\n*Your voice will speak this language*\n\n🗣️ **Your language:** {src_lang}",
-        
-        "clone_ready_title": "✅ **Voice Clone Ready!**",
-        "clone_ready_text": """🎭 **Setup Complete:**
-🗣️ **Your language:** {src_lang}
-🎯 **Target language:** {tgt_lang}
-
-📱 **Instructions:**
-1. Record a voice message (30+ seconds for first clone)
-2. Speak clearly in {src_lang}
-3. AI will clone your voice speaking in {tgt_lang}
-
-🎤 **Send your voice message now!**""",
-
-        "separator_ignore": "This button does nothing",
-        
-        # Menu buttons
-        "btn_translate_text": "📝 Translate Text",
-        "btn_voice_text": "🎤 Voice → Text Translation",
-        "btn_voice_voice": "🔊 Voice → Voice Translation", 
-        "btn_voice_clone": "🎭 AI Voice Clone",
-        "btn_languages": "⚙️ Languages",
-        "btn_help": "ℹ️ Help",
-        "btn_back": "🔙 Back to Menu",
-        "btn_more_languages": "🌍 More languages",
-        "btn_keep_target": "⏭️ Keep current target",
-        
-        # Settings menu
-        "btn_source_lang": "🗣 Source Language (I speak)",
-        "btn_target_lang": "🌐 Target Language (I want)",
-        "btn_reset_clone": "🔄 Reset Voice Clone",
-        "btn_change_interface": "🌐 Interface Language",
-        
-        # Status texts
-        "status_title": "📊 **Current Status:**",
-        "status_mode": "🔧 **Mode:**",
-        "status_from": "🗣 **From:**",
-        "status_to": "🌐 **To:**",
-        "status_cloned": "🎭 **Voice Cloned:**",
-        "status_footer": "Choose an option below:",
-        
-        "mode_text": "📝 Text Translation",
-        "mode_voice": "🎤 Voice → Text",
-        "mode_voice_tts": "🔊 Voice → Voice",
-        "mode_voice_clone": "🎭 AI Voice Clone",
-        "mode_not_selected": "❌ Not selected",
-        "auto_detect": "🤖 Auto-detect",
-        "yes": "✅ Yes",
-        "no": "❌ No",
-        
-        # Mode descriptions (обновленные)
-        "desc_text_mode": "📝 **Text Translation**\n\nSimple text translation between languages.\n\n*Free feature - basic functionality*",
-        "desc_voice_mode": "🎤 **Voice → Text Translation**\n\nTranscribe voice and translate to text.\n\n*Free feature - basic functionality*",
-        "desc_voice_tts_mode": "🔊 **Voice → Voice Translation**\n\nBasic voice translation with standard TTS.\n\n*Free feature - robotic voice*",
-        
-        # Language selection
-        "select_source_lang": "🗣 **Select source language** (the language you speak):\n\n*Quick selection:*",
-        "select_target_lang": "🌐 **Select target language** (the language you want):\n\n*Quick selection:*",
-        "all_languages": "🌍 **All {lang_type} languages:**",
-        "source_set": "✅ **Source language set:** {lang_name}\n\n🌐 **Now select target language** (the language you want):\n\n*Quick selection:*",
-        "target_set": "✅ **Target language set:** {lang_name}\n\n🎯 **Setup complete!**",
-        "keeping_target": "⏭️ **Keeping current target:** {lang_name}\n\n🎯 **Setup complete!**",
-        
-        # Processing messages
-        "processing_voice": "🎧 Processing your voice message...",
-        "translating": "🔄 Translating...",
-        "recognizing": "🔍 Recognizing speech...",
-        "generating_voice": "🔊 Generating voice...",
-        "using_cloned_voice": "🎭 Using your cloned voice...",
-        "cloning_voice": "🧬 Cloning your voice... (this takes time)",
-        "generating_cloned": "🎤 Generating cloned voice...",
-        
-        # Results
-        "translation_complete": "📝 **Translation Complete**",
-        "voice_translation_complete": "🎤 **Voice Translation Complete**",
-        "recognized": "🗣 **Recognized** ({src_lang}):",
-        "translated": "🌐 **Translated** ({tgt_lang}):",
-        "from_label": "🗣 **From** {src_lang}:",
-        "to_label": "🌐 **To** {tgt_lang}:",
-        "voice_caption": "🔊 {src_lang} → {tgt_lang}",
-        "cloned_voice_caption": "🎭 Your voice: {src_lang} → {tgt_lang}",
-        "details": "📝 **Details:**",
-        "original": "🗣 **Original:** {text}",
-        "translated_text": "🌐 **Translated:** {text}",
-        
-        # Errors and warnings
-        "no_mode_selected": "⚠️ **No mode selected**\n\nPlease choose what you want to do first:",
-        "text_mode_not_active": "⚠️ **Text mode not active**\n\nPlease select 📝 'Translate Text' first.",
-        "long_audio_warning": "⚠️ **Long audio detected**\n\n🎤 Your audio: {duration:.1f}s\n⏱️ Google limit: ~60s\n\n📝 Only first part may be recognized...\n\n🔍 Processing...",
-        "could_not_understand": "❌ **Could not understand audio**\n\nTry:\n• Speaking more clearly\n• Checking source language\n• Recording in quieter environment\n• **Shorter messages (under 60s)**",
-        "recognition_error": "❌ Recognition error: {error}",
-        "translation_error": "❌ Translation error: {error}",
-        "source_lang_required": "⚠️ **Source language required for cloning**\n\nPlease set a specific source language in ⚙️ Settings first.",
-        "need_longer_audio": "⚠️ **Need longer audio for cloning**\n\nFirst clone needs 30+ seconds.\nYour audio: {duration:.1f} seconds\n\nAfter first clone, any length works!",
-        "voice_synthesis_failed": "❌ **Voice synthesis failed**\n\n{error}",
-        "voice_cloning_failed": "❌ **Voice cloning failed**\n\nTry recording clearer/longer audio.",
-        "clone_reset": "✅ Voice clone reset! Next voice message will create a new clone.",
-        "voice_clone_reset_answer": "Voice clone reset!",
-        "opening_menu": "Opening menu...",
-        "error_occurred": "❌ Error: {error}",
-        
-        # Help text
-        "help_title": "ℹ️ **How to use:**",
-        "help_content": """🎭 **VOICE CLONING (Main Feature):**
-1. Select Voice Clone from menu
-2. Choose your language and target language
-3. Record 30+ seconds clearly
-4. Your voice is cloned!
-5. Send any voice message - get it back in target language with YOUR voice
-
-📝 **Other Features:**
-• **Text Mode:** Type any text for translation
-• **Voice Mode:** Voice recognition and translation
-• **Voice+TTS:** Basic voice translation (robotic)
-
-⚙️ **Tips:**
-• Voice cloning needs 30+ seconds first time only
-• After cloning, any voice length works
-• Speak clearly for best results
-• Use quiet environment for recording
-
-🎯 **Voice Clone vs Regular TTS:**
-• Voice Clone: YOUR unique voice in any language
-• Regular TTS: Generic robotic voice
-
-⏱️ **Limits:**
-• First clone: 30+ seconds required
-• Recognition: ~60 seconds max
-• After clone: unlimited length""",
-        
-        # Interface language selection
-        "select_interface_lang": "🌐 **Select interface language:**\n\nThis changes the bot's menu language (not translation languages):"
-    },
-    
-    "ru": {
-        "welcome_title": "🎭✨ **БОТ КЛОНИРОВАНИЯ ГОЛОСА** ✨🎭",
-        "welcome_text": "🌟 **Клонируйте свой голос и говорите на ЛЮБОМ языке идеально!**\n\n🎭 **ПРЕМИУМ ФУНКЦИЯ:**\n• Клонируйте свой уникальный голос\n• Говорите с идеальным акцентом на любом языке\n• Сохраняйте свою личность во всех языках\n\n📱 **Бесплатные функции:**\n• 📝 Базовый перевод текста\n• 🎤 Распознавание речи\n• 🔊 Простой синтез речи\n\n✨ **Готовы клонировать свой голос?**",
-        
-        "clone_info_title": "⭐ **КЛОНИРОВАНИЕ ГОЛОСА - ПРЕМИУМ ФУНКЦИЯ** ⭐",
-        "clone_info_text": """🎭 **Что делает это особенным:**
-• Ваш уникальный голос, не робот
-• Идеальный акцент на целевом языке
-• Сохраняет ваш стиль речи и эмоции
-• Работает с 50+ языками
-
-🎯 **Как это работает:**
-1. Запишите 30+ секунд на родном языке
-2. ИИ изучает характеристики вашего голоса
-3. Говорите любой текст с идеальным акцентом
-
-💫 **Применение:**
-• Создание контента на разных языках
-• Изучение языков своим голосом
-• Профессиональная озвучка
-• Личные сообщения зарубежным друзьям
-
-Готовы начать?""",
-        
-        "clone_step1_title": "🎭 **Настройка Клона Голоса** (Шаг 1/2)",
-        "clone_step1_text": "🗣️ **Выберите ваш родной язык:**\n\n*Язык, на котором будете записывать (нужно 30+ секунд)*",
-        
-        "clone_step2_title": "🎭 **Настройка Клона Голоса** (Шаг 2/2)",
-        "clone_step2_text": "🎯 **Выберите целевой язык:**\n\n*Ваш голос будет говорить на этом языке*\n\n🗣️ **Ваш язык:** {src_lang}",
-        
-        "clone_ready_title": "✅ **Клон Голоса Готов!**",
-        "clone_ready_text": """🎭 **Настройка завершена:**
-🗣️ **Ваш язык:** {src_lang}
-🎯 **Целевой язык:** {tgt_lang}
-
-📱 **Инструкции:**
-1. Запишите голосовое сообщение (30+ секунд для первого клона)
-2. Говорите чётко на {src_lang}
-3. ИИ клонирует ваш голос для {tgt_lang}
-
-🎤 **Отправьте голосовое сообщение сейчас!**""",
-
-        "separator_ignore": "Эта кнопка ничего не делает",
-        
-        # Остальные переводы...
-        "btn_translate_text": "📝 Перевести Текст",
-        "auto_detect": "🤖 Авто-определение",
-        "yes": "✅ Да", 
-        "no": "❌ Нет",
-        "help_title": "ℹ️ **Как использовать:**",
-        "help_content": """🎭 **КЛОНИРОВАНИЕ ГОЛОСА (Основная функция):**
-1. Выберите Клон Голоса в меню
-2. Выберите ваш язык и целевой язык  
-3. Запишите 30+ секунд чётко
-4. Ваш голос клонирован!
-5. Отправляйте любые голосовые - получайте обратно на целевом языке ВАШИМ голосом
-
-📝 **Другие функции:**
-• **Текст:** Печатайте текст для перевода
-• **Голос:** Распознавание и перевод речи
-• **Голос+TTS:** Базовый голосовой перевод (роботом)
-
-⚙️ **Советы:**
-• Клонирование требует 30+ секунд только первый раз
-• После клонирования работает любая длина
-• Говорите чётко для лучших результатов
-• Записывайте в тихом месте""",
-        "select_interface_lang": "🌐 **Выберите язык интерфейса:**\n\nЭто изменит язык меню бота (не языки перевода):"
-    },
-    
-    "es": {
-        "welcome_title": "🎭✨ **BOT CLONADOR DE VOZ IA** ✨🎭",
-        "welcome_text": "🌟 **¡Clona tu voz y habla CUALQUIER idioma perfectamente!**\n\n🎭 **FUNCIÓN PREMIUM:**\n• Clona tu voz única\n• Habla con acento perfecto en cualquier idioma\n• Mantén tu personalidad en todos los idiomas\n\n📱 **Funciones gratuitas:**\n• 📝 Traducción básica de texto\n• 🎤 Reconocimiento de voz\n• 🔊 Síntesis de voz simple\n\n✨ **¿Listo para clonar tu voz?**",
-        "auto_detect": "🤖 Auto-detectar",
-        "yes": "✅ Sí",
-        "no": "❌ No",
-        "help_title": "ℹ️ **Cómo usar:**",
-        "help_content": "🎭 **CLONACIÓN DE VOZ:** Función principal del bot\n📝 **Otras funciones:** Traducción básica disponible",
-        "select_interface_lang": "🌐 **Selecciona idioma de interfaz:**\n\nEsto cambia el idioma del menú (no los idiomas de traducción):"
-    }
-}
-
-# Функция получения локализованного текста
-def get_text(context, key, **kwargs):
-    """Получает локализованный текст для пользователя"""
-    interface_lang = context.user_data.get("interface_lang", "en")
-    
-    # Если язык не поддерживается, используем английский
-    if interface_lang not in INTERFACE_TEXTS:
-        interface_lang = "en"
-    
-    # Получаем текст, если его нет - используем английский, если и его нет - возвращаем ключ
-    text = INTERFACE_TEXTS.get(interface_lang, {}).get(key)
-    if not text:
-        text = INTERFACE_TEXTS.get("en", {}).get(key, key)
-    
-    # Подставляем параметры
-    if kwargs:
-        try:
-            text = text.format(**kwargs)
-        except KeyError:
-            pass  # Игнорируем ошибки форматирования
-    
-    return text
-
 # Универсальная функция для безопасного создания меню
 async def safe_send_menu(query_or_message, context, is_query=True):
     """Безопасно отправляет главное меню"""
     menu_text = get_status_text(context)
-    menu_markup = get_main_menu(context)
+    menu_markup = get_main_menu()
     
     if is_query:
         query = query_or_message
@@ -312,7 +42,7 @@ async def safe_send_menu(query_or_message, context, is_query=True):
                 reply_markup=menu_markup
             )
         except Exception:
-            await query.answer(get_text(context, "opening_menu"))
+            await query.answer("Opening menu...")
             await query.message.reply_text(
                 text=menu_text,
                 parse_mode="Markdown",
@@ -325,10 +55,9 @@ async def safe_send_menu(query_or_message, context, is_query=True):
             parse_mode="Markdown",
             reply_markup=menu_markup
         )
-
 LANGS = {
     "🇺🇸 English": "en",
-    "🇷🇺 Русский": "ru",
+    "🇷🇺 Русский": "ru", 
     "🇸🇦 العربية": "ar",
     "🇨🇳 中文 (简体)": "zh-CN",
     "🇹🇼 中文 (繁體)": "zh-TW",
@@ -341,13 +70,6 @@ LANGS = {
     "🇦🇫 پښتو": "ps",
 }
 
-# Языки интерфейса (поддерживаемые для UI)
-INTERFACE_LANGS = {
-    "🇺🇸 English": "en",
-    "🇷🇺 Русский": "ru", 
-    "🇪🇸 Español": "es",
-}
-
 # Функция для получения красивого имени языка
 def get_lang_display_name(code):
     for name, lang_code in LANGS.items():
@@ -356,7 +78,7 @@ def get_lang_display_name(code):
     return code
 
 # Функция для быстрого выбора популярных языков
-def get_quick_lang_keyboard(context, prefix: str, show_skip=False):
+def get_quick_lang_keyboard(prefix: str, show_skip=False):
     popular_langs = [
         ("🇺🇸 English", "en"),
         ("🇷🇺 Русский", "ru"),
@@ -374,87 +96,19 @@ def get_quick_lang_keyboard(context, prefix: str, show_skip=False):
                 name, code = popular_langs[i + j]
                 row.append(InlineKeyboardButton(name, callback_data=f"{prefix}{code}"))
         buttons.append(row)
-
+    
     # Кнопка "Больше языков"
-    buttons.append([InlineKeyboardButton(get_text(context, "btn_more_languages"), callback_data=f"{prefix}more")])
-
+    buttons.append([InlineKeyboardButton("🌍 More languages", callback_data=f"{prefix}more")])
+    
     # Кнопка Skip для целевого языка (если уже выбран)
     if show_skip:
-        buttons.append([InlineKeyboardButton(get_text(context, "btn_keep_target"), callback_data="skip_target")])
-
-    buttons.append([InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")])
-    return InlineKeyboardMarkup(buttons)
-
-# Полный список языков
-def build_lang_keyboard(context, prefix: str):
-    buttons = []
-    row = []
-    i = 0
-    for name, code in LANGS.items():
-        cb = f"{prefix}{code}"
-        row.append(InlineKeyboardButton(name, callback_data=cb))
-        i += 1
-        if i % 2 == 0:
-            buttons.append(row)
-            row = []
-    if row:
-        buttons.append(row)
+        buttons.append([InlineKeyboardButton("⏭️ Keep current target", callback_data="skip_target")])
     
-    buttons.append([InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")])
-    return InlineKeyboardMarkup(buttons)
-
-# Пошаговый мастер настройки клонирования
-def get_clone_step1_keyboard(context):
-    """Шаг 1: Выбор языка источника для клонирования"""
-    popular_langs = [
-        ("🇺🇸 English", "en"),
-        ("🇷🇺 Русский", "ru"),
-        ("🇪🇸 Español", "es"),
-        ("🇫🇷 Français", "fr"),
-        ("🇩🇪 Deutsch", "de"),
-        ("🇨🇳 中文", "zh-CN"),
-    ]
-    
-    buttons = []
-    for i in range(0, len(popular_langs), 2):
-        row = []
-        for j in range(2):
-            if i + j < len(popular_langs):
-                name, code = popular_langs[i + j]
-                row.append(InlineKeyboardButton(name, callback_data=f"clone_src_{code}"))
-        buttons.append(row)
-    
-    buttons.append([InlineKeyboardButton("🌍 More Languages", callback_data="clone_src_more")])
     buttons.append([InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")])
     return InlineKeyboardMarkup(buttons)
 
-def get_clone_step2_keyboard(context):
-    """Шаг 2: Выбор целевого языка для клонирования"""
-    popular_langs = [
-        ("🇺🇸 English", "en"),
-        ("🇷🇺 Русский", "ru"),
-        ("🇪🇸 Español", "es"),
-        ("🇫🇷 Français", "fr"),
-        ("🇩🇪 Deutsch", "de"),
-        ("🇨🇳 中文", "zh-CN"),
-    ]
-    
-    buttons = []
-    for i in range(0, len(popular_langs), 2):
-        row = []
-        for j in range(2):
-            if i + j < len(popular_langs):
-                name, code = popular_langs[i + j]
-                row.append(InlineKeyboardButton(name, callback_data=f"clone_tgt_{code}"))
-        buttons.append(row)
-    
-    buttons.append([InlineKeyboardButton("🌍 More Languages", callback_data="clone_tgt_more")])
-    buttons.append([InlineKeyboardButton("🔙 Back", callback_data="mode_voice_clone")])
-    return InlineKeyboardMarkup(buttons)
-
-def get_clone_all_langs_keyboard(context, step):
-    """Показать все языки для клонирования"""
-    prefix = f"clone_{step}_"
+# Полный список языков
+def build_lang_keyboard(prefix: str):
     buttons = []
     row = []
     i = 0
@@ -468,49 +122,30 @@ def get_clone_all_langs_keyboard(context, step):
     if row:
         buttons.append(row)
     
-    back_callback = "mode_voice_clone" if step == "src" else f"clone_step2"
-    buttons.append([InlineKeyboardButton("🔙 Back", callback_data=back_callback)])
+    buttons.append([InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")])
     return InlineKeyboardMarkup(buttons)
 
-def get_interface_lang_keyboard():
-    buttons = []
-    for name, code in INTERFACE_LANGS.items():
-        buttons.append([InlineKeyboardButton(name, callback_data=f"interface_{code}")])
-    
-    buttons.append([InlineKeyboardButton("🔙 Back", callback_data="back_to_settings")])
-    return InlineKeyboardMarkup(buttons)
-
-# Главное меню с акцентом на клонирование голоса
-def get_main_menu(context):
+# Главное меню с эмодзи и понятными описаниями
+def get_main_menu():
     keyboard = [
-        # ✨ ПРЕМИУМ ФУНКЦИЯ - КЛОНИРОВАНИЕ ✨
-        [InlineKeyboardButton("✨🎭 AI VOICE CLONE 🎭✨", callback_data="mode_voice_clone")],
-        [InlineKeyboardButton("⭐ PREMIUM FEATURE ⭐", callback_data="clone_info")],
-        
-        # Разделитель
-        [InlineKeyboardButton("━━━━━━━━━━━━━━━━━━━━━━", callback_data="separator")],
-        
-        # Бесплатные функции (менее заметные)
-        [InlineKeyboardButton("📝 Text Translation (Free)", callback_data="mode_text")],
+        [InlineKeyboardButton("📝 Translate Text", callback_data="mode_text")],
+        [InlineKeyboardButton("🎤 Voice → Text Translation", callback_data="mode_voice")],
+        [InlineKeyboardButton("🔊 Voice → Voice Translation", callback_data="mode_voice_tts")], 
+        [InlineKeyboardButton("🎭 AI Voice Clone", callback_data="mode_voice_clone")],
         [
-            InlineKeyboardButton("🎤 Voice→Text", callback_data="mode_voice"),
-            InlineKeyboardButton("🔊 Voice→Voice", callback_data="mode_voice_tts")
-        ],
-        
-        # Настройки внизу
-        [
-            InlineKeyboardButton("⚙️ Settings", callback_data="settings_menu"),
+            InlineKeyboardButton("⚙️ Languages", callback_data="settings_menu"),
             InlineKeyboardButton("ℹ️ Help", callback_data="help"),
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
-def get_settings_menu(context):
+
+# Меню настроек языков
+def get_settings_menu():
     keyboard = [
-        [InlineKeyboardButton(get_text(context, "btn_source_lang"), callback_data="change_source")],
-        [InlineKeyboardButton(get_text(context, "btn_target_lang"), callback_data="change_target")],
-        [InlineKeyboardButton(get_text(context, "btn_change_interface"), callback_data="change_interface")],
-        [InlineKeyboardButton(get_text(context, "btn_reset_clone"), callback_data="reset_clone")],
-        [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")],
+        [InlineKeyboardButton("🗣 Source Language (I speak)", callback_data="change_source")],
+        [InlineKeyboardButton("🌐 Target Language (I want)", callback_data="change_target")],
+        [InlineKeyboardButton("🔄 Reset Voice Clone", callback_data="reset_clone")],
+        [InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -519,60 +154,50 @@ def get_status_text(context):
     src = context.user_data.get("source_lang")
     tgt = context.user_data.get("target_lang", DEFAULT_TARGET)
     mode = context.user_data.get("mode")
-    cloned = get_text(context, "yes") if context.user_data.get("cloned_voice_id") else get_text(context, "no")
+    cloned = "✅ Yes" if context.user_data.get("cloned_voice_id") else "❌ No"
     
-    src_display = get_lang_display_name(src) if src else get_text(context, "auto_detect")
+    src_display = get_lang_display_name(src) if src else "🤖 Auto-detect"
     tgt_display = get_lang_display_name(tgt)
-
+    
     mode_names = {
-        "mode_text": get_text(context, "mode_text"),
-        "mode_voice": get_text(context, "mode_voice"),
-        "mode_voice_tts": get_text(context, "mode_voice_tts"),
-        "mode_voice_clone": get_text(context, "mode_voice_clone"),
+        "mode_text": "📝 Text Translation",
+        "mode_voice": "🎤 Voice → Text",
+        "mode_voice_tts": "🔊 Voice → Voice",
+        "mode_voice_clone": "🎭 AI Voice Clone",
     }
-    mode_display = mode_names.get(mode, get_text(context, "mode_not_selected"))
+    mode_display = mode_names.get(mode, "❌ Not selected")
+    
+    return f"""📊 **Current Status:**
 
-    return f"""{get_text(context, "status_title")}
+🔧 **Mode:** {mode_display}
+🗣 **From:** {src_display}
+🌐 **To:** {tgt_display}
+🎭 **Voice Cloned:** {cloned}
 
-{get_text(context, "status_mode")} {mode_display}
-{get_text(context, "status_from")} {src_display}
-{get_text(context, "status_to")} {tgt_display}
-{get_text(context, "status_cloned")} {cloned}
+Choose an option below:"""
 
-{get_text(context, "status_footer")}"""
-
-def get_back_button(context):
-    return InlineKeyboardMarkup([[InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]])
+BACK_BUTTON = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")]])
 
 # /start handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Определяем язык интерфейса пользователя
-    user_lang = update.effective_user.language_code or "en"
-    
-    # Поддерживаемые языки интерфейса
-    supported_interface_langs = list(INTERFACE_LANGS.values())
-    if user_lang not in supported_interface_langs:
-        # Если точного совпадения нет, пробуем найти по первой части (ru-RU -> ru)
-        lang_base = user_lang.split('-')[0] if '-' in user_lang else user_lang
-        if lang_base in supported_interface_langs:
-            user_lang = lang_base
-        else:
-            user_lang = "en"  # По умолчанию английский
-    
-    # Инициализация пользовательских данных
     context.user_data.setdefault("mode", None)
     context.user_data.setdefault("source_lang", None)
     context.user_data.setdefault("target_lang", DEFAULT_TARGET)
-    context.user_data.setdefault("interface_lang", user_lang)
     
-    welcome_text = f"""{get_text(context, "welcome_title")}
+    welcome_text = """🤖 **AI Translator & Voice Clone Bot**
 
-{get_text(context, "welcome_text")}"""
+I can help you:
+• 📝 Translate text
+• 🎤 Transcribe & translate voice  
+• 🔊 Convert voice to different languages
+• 🎭 Clone your voice for any language
 
+Ready to start? Choose what you'd like to do:"""
+    
     await update.message.reply_text(
         welcome_text,
         parse_mode="Markdown",
-        reply_markup=get_main_menu(context),
+        reply_markup=get_main_menu(),
     )
 
 # Handle mode selection callbacks
@@ -580,89 +205,71 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
     data = query.data
-    
-    # Игнорируем нажатие на разделитель
-    if data == "separator":
-        await query.answer(get_text(context, "separator_ignore"))
-        return
-    
-    # Информация о клонировании
-    if data == "clone_info":
-        await query.edit_message_text(
-            text=f"""{get_text(context, "clone_info_title")}
 
-{get_text(context, "clone_info_text")}""",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🚀 Start Voice Clone", callback_data="mode_voice_clone")],
-                [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
-            ]),
-        )
-        return
-    
     # Settings menu
     if data == "settings_menu":
         await query.edit_message_text(
             text=get_status_text(context),
             parse_mode="Markdown",
-            reply_markup=get_settings_menu(context),
+            reply_markup=get_settings_menu(),
         )
         return
 
     # Help
     if data == "help":
-        help_text = f"""{get_text(context, "help_title")}
+        help_text = """ℹ️ **How to use:**
 
-{get_text(context, "help_content")}"""
+📝 **Text Mode:** Just type any text
+🎤 **Voice Mode:** Send voice message
+🔊 **Voice+TTS:** Voice → Text → Voice  
+🎭 **Voice Clone:** Your voice in any language
 
+⚙️ **Tips:**
+• Set source language for better accuracy
+• Voice cloning needs 30+ seconds first time
+• After cloning, any length works
+• **Keep voice under 60s for best recognition**
+
+🔧 **Troubleshooting:**
+• Can't understand audio? Check source language
+• Bad translation? Try different source language
+• Clone failed? Send longer/clearer audio
+• **Partial recognition? Audio too long (60s+ limit)**
+• Text cut off? Split into shorter messages
+
+⏱️ **Audio Limits:**
+• 🎤 Recognition: ~60 seconds max
+• 🎭 First clone: 30+ seconds required  
+• 🔊 After clone: any length works"""
+        
         await query.edit_message_text(
             text=help_text,
             parse_mode="Markdown",
-            reply_markup=get_back_button(context),
+            reply_markup=BACK_BUTTON,
         )
         return
 
     # Reset voice clone
     if data == "reset_clone":
         context.user_data["cloned_voice_id"] = None
-        await query.answer(get_text(context, "voice_clone_reset_answer"))
+        await query.answer("Voice clone reset!")  # Используем answer вместо edit
         await query.edit_message_text(
-            text=get_text(context, "clone_reset"),
-            reply_markup=get_settings_menu(context),
+            text="✅ Voice clone reset! Next voice message will create a new clone.",
+            reply_markup=get_settings_menu(),
         )
         return
 
-    # Change interface language
-    if data == "change_interface":
-        await query.edit_message_text(
-            text=get_text(context, "select_interface_lang"),
-            parse_mode="Markdown",
-            reply_markup=get_interface_lang_keyboard(),
-        )
-        return
-
-    # Set the chosen mode - СПЕЦИАЛЬНАЯ ОБРАБОТКА ДЛЯ КЛОНИРОВАНИЯ
-    if data == "mode_voice_clone":
-        # Запускаем пошаговый мастер клонирования
-        await query.edit_message_text(
-            text=f"""{get_text(context, "clone_step1_title")}
-
-{get_text(context, "clone_step1_text")}""",
-            parse_mode="Markdown",
-            reply_markup=get_clone_step1_keyboard(context),
-        )
-        return
-    
-    # Остальные режимы (обычная обработка)
+    # Set the chosen mode
     if data.startswith("mode_"):
         mode = data
         context.user_data["mode"] = mode
         
         # Показываем что выбрано и готовы к работе
         mode_descriptions = {
-            "mode_text": get_text(context, "desc_text_mode"),
-            "mode_voice": get_text(context, "desc_voice_mode"),
-            "mode_voice_tts": get_text(context, "desc_voice_tts_mode"),
+            "mode_text": "📝 **Text Translation**\n\nJust send me any text and I'll translate it!",
+            "mode_voice": "🎤 **Voice → Text Translation**\n\nSend voice message and get text translation back.",
+            "mode_voice_tts": "🔊 **Voice → Voice Translation**\n\nSend voice message and get translated voice back using Google TTS.",
+            "mode_voice_clone": "🎭 **AI Voice Clone**\n\nSend voice message and get it back in your cloned voice speaking the translated text!\n\n⚠️ First time needs 30+ seconds to clone your voice.",
         }
         
         description = mode_descriptions.get(mode, "")
@@ -671,25 +278,25 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
         await query.edit_message_text(
             text=f"{description}\n\n{status}",
             parse_mode="Markdown",
-            reply_markup=get_back_button(context),
+            reply_markup=BACK_BUTTON,
         )
         return
 
     # Change source language
     if data == "change_source":
         await query.edit_message_text(
-            text=get_text(context, "select_source_lang"),
+            text="🗣 **Select source language** (the language you speak):\n\n*Quick selection:*",
             parse_mode="Markdown",
-            reply_markup=get_quick_lang_keyboard(context, "src_"),
+            reply_markup=get_quick_lang_keyboard("src_"),
         )
         return
 
     # Change target language  
     if data == "change_target":
         await query.edit_message_text(
-            text=get_text(context, "select_target_lang"),
+            text="🌐 **Select target language** (the language you want):\n\n*Quick selection:*",
             parse_mode="Markdown", 
-            reply_markup=get_quick_lang_keyboard(context, "tgt_"),
+            reply_markup=get_quick_lang_keyboard("tgt_"),
         )
         return
 
@@ -699,102 +306,12 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
         await safe_send_menu(query, context, is_query=True)
         return
 
-# Handle clone setup steps
-async def handle_clone_setup(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-    
-    # Показать все языки для шага 1
-    if data == "clone_src_more":
-        await query.edit_message_text(
-            text=f"""{get_text(context, "clone_step1_title")}
-
-🌍 **All languages:**""",
-            parse_mode="Markdown",
-            reply_markup=get_clone_all_langs_keyboard(context, "src"),
-        )
-        return
-    
-    # Показать все языки для шага 2
-    if data == "clone_tgt_more":
-        src_lang = get_lang_display_name(context.user_data.get("source_lang", ""))
-        await query.edit_message_text(
-            text=f"""{get_text(context, "clone_step2_title")}
-
-🌍 **All languages:**
-
-🗣️ **Your language:** {src_lang}""",
-            parse_mode="Markdown",
-            reply_markup=get_clone_all_langs_keyboard(context, "tgt"),
-        )
-        return
-    
-    # Выбран исходный язык
-    if data.startswith("clone_src_"):
-        code = data[len("clone_src_"):]
-        context.user_data["source_lang"] = code
-        lang_name = get_lang_display_name(code)
-        
-        # Переходим к шагу 2
-        await query.edit_message_text(
-            text=get_text(context, "clone_step2_text", src_lang=lang_name),
-            parse_mode="Markdown",
-            reply_markup=get_clone_step2_keyboard(context),
-        )
-        return
-    
-    # Выбран целевой язык - ЗАВЕРШЕНИЕ НАСТРОЙКИ
-    if data.startswith("clone_tgt_"):
-        code = data[len("clone_tgt_"):]
-        context.user_data["target_lang"] = code
-        context.user_data["mode"] = "mode_voice_clone"  # Устанавливаем режим
-        
-        src_lang = get_lang_display_name(context.user_data.get("source_lang"))
-        tgt_lang = get_lang_display_name(code)
-        
-        # Показываем финальный экран с инструкциями
-        await query.edit_message_text(
-            text=get_text(context, "clone_ready_text", src_lang=src_lang, tgt_lang=tgt_lang),
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔄 Change Languages", callback_data="mode_voice_clone")],
-                [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
-            ]),
-        )
-        return
-
-# Handle interface language changes
-async def handle_interface_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-    
-    if data == "back_to_settings":
-        await query.edit_message_text(
-            text=get_status_text(context),
-            parse_mode="Markdown",
-            reply_markup=get_settings_menu(context),
-        )
-        return
-    
-    if data.startswith("interface_"):
-        lang_code = data[len("interface_"):]
-        context.user_data["interface_lang"] = lang_code
-        
-        # Показываем подтверждение на новом языке
-        await query.edit_message_text(
-            text=f"✅ {get_text(context, 'status_title')}\n\n{get_status_text(context)}",
-            parse_mode="Markdown",
-            reply_markup=get_main_menu(context),
-        )
-        return
 # Handle language selection callbacks for src_/tgt_
 async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
-    
+
     if data == "back_to_menu":
         context.user_data["mode"] = None
         await safe_send_menu(query, context, is_query=True)
@@ -805,9 +322,9 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         prefix = data.replace("_more", "_")
         lang_type = "source" if prefix == "src_" else "target"
         await query.edit_message_text(
-            text=get_text(context, "all_languages", lang_type=lang_type),
+            text=f"🌍 **All {lang_type} languages:**",
             parse_mode="Markdown",
-            reply_markup=build_lang_keyboard(context, prefix),
+            reply_markup=build_lang_keyboard(prefix),
         )
         return
 
@@ -816,14 +333,14 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         current_target = context.user_data.get("target_lang", DEFAULT_TARGET)
         target_name = get_lang_display_name(current_target)
         await query.edit_message_text(
-            text=get_text(context, "keeping_target", lang_name=target_name) + f"\n\n{get_status_text(context)}",
+            text=f"⏭️ **Keeping current target:** {target_name}\n\n🎯 **Setup complete!**\n\n{get_status_text(context)}",
             parse_mode="Markdown",
-            reply_markup=get_main_menu(context),
+            reply_markup=get_main_menu(),
         )
         return
 
     if data.startswith("src_"):
-        code = data[len("src_"):]
+        code = data[len("src_") :]
         context.user_data["source_lang"] = code
         lang_name = get_lang_display_name(code)
         
@@ -833,22 +350,22 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
         # Предлагаем сразу выбрать целевой язык
         await query.edit_message_text(
-            text=get_text(context, "source_set", lang_name=lang_name),
+            text=f"✅ **Source language set:** {lang_name}\n\n🌐 **Now select target language** (the language you want):\n\n*Quick selection:*",
             parse_mode="Markdown",
-            reply_markup=get_quick_lang_keyboard(context, "tgt_", show_skip=show_skip),
+            reply_markup=get_quick_lang_keyboard("tgt_", show_skip=show_skip),
         )
         return
 
     if data.startswith("tgt_"):
-        code = data[len("tgt_"):]
+        code = data[len("tgt_") :]
         context.user_data["target_lang"] = code
         lang_name = get_lang_display_name(code)
         
         # Показываем что настройка завершена и возвращаемся в главное меню
         await query.edit_message_text(
-            text=get_text(context, "target_set", lang_name=lang_name) + f"\n\n{get_status_text(context)}",
+            text=f"✅ **Target language set:** {lang_name}\n\n🎯 **Setup complete!**\n\n{get_status_text(context)}",
             parse_mode="Markdown",
-            reply_markup=get_main_menu(context),
+            reply_markup=get_main_menu(),
         )
         return
 
@@ -857,9 +374,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mode = context.user_data.get("mode")
     if mode != "mode_text":
         await update.message.reply_text(
-            get_text(context, "text_mode_not_active"),
+            "⚠️ **Text mode not active**\n\nPlease select 📝 'Translate Text' first.",
             parse_mode="Markdown",
-            reply_markup=get_main_menu(context)
+            reply_markup=get_main_menu()
         )
         return
 
@@ -867,28 +384,28 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tgt = context.user_data.get("target_lang") or DEFAULT_TARGET
 
     original_text = update.message.text
-
+    
     # Показываем что происходит
-    processing_msg = await update.message.reply_text(get_text(context, "translating"))
-
+    processing_msg = await update.message.reply_text("🔄 Translating...")
+    
     try:
         translated = GoogleTranslator(source=src, target=tgt).translate(original_text)
         
-        src_display = get_lang_display_name(src) if src != "auto" else get_text(context, "auto_detect")
+        src_display = get_lang_display_name(src) if src != "auto" else "🤖 Auto-detect"
         tgt_display = get_lang_display_name(tgt)
         
-        result_text = f"""{get_text(context, "translation_complete")}
+        result_text = f"""📝 **Translation Complete**
 
-{get_text(context, "from_label", src_lang=src_display)}
+🗣 **From** {src_display}:
 {original_text}
 
-{get_text(context, "to_label", tgt_lang=tgt_display)}
+🌐 **To** {tgt_display}:
 {translated}"""
 
-        await processing_msg.edit_text(result_text, parse_mode="Markdown", reply_markup=get_back_button(context))
+        await processing_msg.edit_text(result_text, parse_mode="Markdown", reply_markup=BACK_BUTTON)
         
     except Exception as e:
-        await processing_msg.edit_text(get_text(context, "translation_error", error=str(e)), reply_markup=get_back_button(context))
+        await processing_msg.edit_text(f"❌ Translation error: {str(e)}", reply_markup=BACK_BUTTON)
 
 # Helper: clone user's voice using ElevenLabs
 async def clone_user_voice(user_id: int, audio_file_path: str, source_language: str = None):
@@ -898,7 +415,7 @@ async def clone_user_voice(user_id: int, audio_file_path: str, source_language: 
 
     headers = {"xi-api-key": ELEVENLABS_API_KEY}
     voice_name = f"user_{user_id}_voice"
-
+    
     description = f"Cloned voice for user {user_id}"
     if source_language:
         lang_name = get_lang_display_name(source_language)
@@ -929,9 +446,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mode = context.user_data.get("mode")
     if not mode:
         await update.message.reply_text(
-            get_text(context, "no_mode_selected"),
+            "⚠️ **No mode selected**\n\nPlease choose what you want to do first:",
             parse_mode="Markdown",
-            reply_markup=get_main_menu(context)
+            reply_markup=get_main_menu()
         )
         return
 
@@ -939,7 +456,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tgt = context.user_data.get("target_lang") or DEFAULT_TARGET
 
     # Показываем статус обработки
-    processing_msg = await update.message.reply_text(get_text(context, "processing_voice"))
+    processing_msg = await update.message.reply_text("🎧 Processing your voice message...")
 
     # Download voice file
     voice = await update.message.voice.get_file()
@@ -949,22 +466,19 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Convert ogg -> wav
     audio = AudioSegment.from_ogg(voice_file)
-
+    
     # Проверяем длительность и предупреждаем
     duration_sec = len(audio) / 1000.0
     if duration_sec > 55:  # Google limit ~60 seconds
-        await processing_msg.edit_text(
-            get_text(context, "long_audio_warning", duration=duration_sec), 
-            parse_mode="Markdown"
-        )
-
+        await processing_msg.edit_text("⚠️ **Long audio detected**\n\n🎤 Your audio: {:.1f}s\n⏱️ Google limit: ~60s\n\n📝 Only first part may be recognized...\n\n🔍 Processing...".format(duration_sec), parse_mode="Markdown")
+    
     wav_io = BytesIO()
     audio.export(wav_io, format="wav")
     wav_io.seek(0)
 
     try:
         # Speech recognition
-        await processing_msg.edit_text(get_text(context, "recognizing"))
+        await processing_msg.edit_text("🔍 Recognizing speech...")
         
         with sr.AudioFile(wav_io) as source:
             audio_data = recognizer.record(source)
@@ -984,47 +498,41 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
     except sr.UnknownValueError:
         await processing_msg.edit_text(
-            get_text(context, "could_not_understand"),
+            "❌ **Could not understand audio**\n\nTry:\n• Speaking more clearly\n• Checking source language\n• Recording in quieter environment\n• **Shorter messages (under 60s)**",
             parse_mode="Markdown",
-            reply_markup=get_back_button(context)
+            reply_markup=BACK_BUTTON
         )
         return
     except Exception as e:
-        await processing_msg.edit_text(
-            get_text(context, "recognition_error", error=str(e)), 
-            reply_markup=get_back_button(context)
-        )
+        await processing_msg.edit_text(f"❌ Recognition error: {str(e)}", reply_markup=BACK_BUTTON)
         return
 
     # Translate
     try:
-        await processing_msg.edit_text(get_text(context, "translating"))
+        await processing_msg.edit_text("🌐 Translating...")
         translated = GoogleTranslator(source=src if src != "auto" else "auto", target=tgt).translate(text)
     except Exception as e:
-        await processing_msg.edit_text(
-            get_text(context, "translation_error", error=str(e)), 
-            reply_markup=get_back_button(context)
-        )
+        await processing_msg.edit_text(f"❌ Translation error: {str(e)}", reply_markup=BACK_BUTTON)
         return
 
     # Respond based on mode
     try:
-        src_display = get_lang_display_name(src) if src != "auto" else get_text(context, "auto_detect")
+        src_display = get_lang_display_name(src) if src != "auto" else "🤖 Auto-detect"
         tgt_display = get_lang_display_name(tgt)
         
         if mode == "mode_voice":
-            result_text = f"""{get_text(context, "voice_translation_complete")}
+            result_text = f"""🎤 **Voice Translation Complete**
 
-{get_text(context, "recognized", src_lang=src_display)}
+🗣 **Recognized** ({src_display}):
 {text}
 
-{get_text(context, "translated", tgt_lang=tgt_display)}
+🌐 **Translated** ({tgt_display}):
 {translated}"""
-
-            await processing_msg.edit_text(result_text, parse_mode="Markdown", reply_markup=get_back_button(context))
+            
+            await processing_msg.edit_text(result_text, parse_mode="Markdown", reply_markup=BACK_BUTTON)
 
         elif mode == "mode_voice_tts":
-            await processing_msg.edit_text(get_text(context, "generating_voice"))
+            await processing_msg.edit_text("🔊 Generating voice...")
             
             tts_lang = tgt
             try:
@@ -1039,17 +547,13 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Удаляем processing message и отправляем результат
             await processing_msg.delete()
             
-            caption = get_text(context, "voice_caption", src_lang=src_display, tgt_lang=tgt_display)
+            caption = f"🔊 {src_display} → {tgt_display}"
             with open(tmp_file_path, "rb") as audio_file:
-                await update.message.reply_voice(voice=audio_file, caption=caption, reply_markup=get_back_button(context))
+                await update.message.reply_voice(voice=audio_file, caption=caption, reply_markup=BACK_BUTTON)
                 
             # Отправляем текст отдельно если он длинный
             if len(text) > 100 or len(translated) > 100:
-                details = f"""{get_text(context, "details")}
-
-{get_text(context, "original", text=text)}
-
-{get_text(context, "translated_text", text=translated)}"""
+                details = f"📝 **Details:**\n\n🗣 **Original:** {text}\n\n🌐 **Translated:** {translated}"
                 await update.message.reply_text(details, parse_mode="Markdown")
 
             os.remove(tmp_file_path)
@@ -1058,9 +562,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Проверяем язык источника
             if not src or src == "auto":
                 await processing_msg.edit_text(
-                    get_text(context, "source_lang_required"),
+                    "⚠️ **Source language required for cloning**\n\nPlease set a specific source language in ⚙️ Settings first.",
                     parse_mode="Markdown",
-                    reply_markup=get_settings_menu(context)
+                    reply_markup=get_settings_menu()
                 )
                 return
                 
@@ -1069,20 +573,20 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             if existing:
                 # Голос уже клонирован
-                await processing_msg.edit_text(get_text(context, "using_cloned_voice"))
+                await processing_msg.edit_text("🎭 Using your cloned voice...")
                 voice_id = existing
             else:
                 # Нужно клонировать голос
                 duration_sec = len(audio) / 1000.0
                 if duration_sec < 30:
                     await processing_msg.edit_text(
-                        get_text(context, "need_longer_audio", duration=duration_sec),
+                        f"⚠️ **Need longer audio for cloning**\n\nFirst clone needs 30+ seconds.\nYour audio: {duration_sec:.1f} seconds\n\nAfter first clone, any length works!",
                         parse_mode="Markdown",
-                        reply_markup=get_back_button(context)
+                        reply_markup=BACK_BUTTON
                     )
                     return
 
-                await processing_msg.edit_text(get_text(context, "cloning_voice"))
+                await processing_msg.edit_text("🧬 Cloning your voice... (this takes time)")
                 
                 with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_mp3:
                     audio.export(tmp_mp3.name, format="mp3")
@@ -1098,11 +602,11 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 # Обновляем или удаляем processing message
                 try:
-                    await processing_msg.edit_text(get_text(context, "generating_cloned"))
+                    await processing_msg.edit_text("🎤 Generating cloned voice...")
                 except:
                     # Если не удалось отредактировать, отправляем новое
                     await processing_msg.delete()
-                    processing_msg = await update.message.reply_text(get_text(context, "generating_cloned"))
+                    processing_msg = await update.message.reply_text("🎤 Generating cloned voice...")
                 
                 synth_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
                 headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
@@ -1120,11 +624,11 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     payload["voice_settings"]["style"] = 0.2
                     payload["voice_settings"]["use_speaker_boost"] = True
                 
-                print(f"Using voice_id: {voice_id} for synthesis")
-                print(f"Payload: {payload}")
+                print(f"Using voice_id: {voice_id} for synthesis")  # Отладка
+                print(f"Payload: {payload}")  # Отладка
                 
                 r = requests.post(synth_url, headers=headers, json=payload)
-                print(f"ElevenLabs response status: {r.status_code}")
+                print(f"ElevenLabs response status: {r.status_code}")  # Отладка
                 
                 if r.status_code == 200:
                     tmp_out = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
@@ -1140,14 +644,12 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         pass
 
                     # Отправляем результат
-                    caption = get_text(context, "cloned_voice_caption", src_lang=src_display, tgt_lang=tgt_display)
+                    caption = f"🎭 Your voice: {src_display} → {tgt_display}"
                     with open(tmp_out_path, "rb") as af:
-                        await update.message.reply_voice(voice=af, caption=caption, reply_markup=get_back_button(context))
+                        await update.message.reply_voice(voice=af, caption=caption, reply_markup=BACK_BUTTON)
                     
                     # Детали отдельно если текст длинный
-                    info_text = f"""{get_text(context, "original", text=text)}
-
-{get_text(context, "translated_text", text=translated)}"""
+                    info_text = f"📝 **Original:** {text}\n\n🌐 **Translated:** {translated}"
                     if len(info_text) > 500:
                         await update.message.reply_text(info_text, parse_mode="Markdown")
                     
@@ -1156,35 +658,24 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                     os.remove(tmp_out_path)
                 else:
-                    print(f"ElevenLabs error response: {r.text}")
-                    await processing_msg.edit_text(
-                        get_text(context, "voice_synthesis_failed", error=r.text), 
-                        parse_mode="Markdown", 
-                        reply_markup=get_back_button(context)
-                    )
+                    print(f"ElevenLabs error response: {r.text}")  # Отладка
+                    await processing_msg.edit_text(f"❌ **Voice synthesis failed**\n\n{r.text}", parse_mode="Markdown", reply_markup=BACK_BUTTON)
             else:
-                await processing_msg.edit_text(
-                    get_text(context, "voice_cloning_failed"), 
-                    parse_mode="Markdown", 
-                    reply_markup=get_back_button(context)
-                )
+                await processing_msg.edit_text("❌ **Voice cloning failed**\n\nTry recording clearer/longer audio.", parse_mode="Markdown", reply_markup=BACK_BUTTON)
 
     except Exception as e:
-        await processing_msg.edit_text(
-            get_text(context, "error_occurred", error=str(e)), 
-            reply_markup=get_back_button(context)
-        )
+        await processing_msg.edit_text(f"❌ Error: {str(e)}", reply_markup=BACK_BUTTON)
 
 # Entry point
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface)"))
-    app.add_handler(CallbackQueryHandler(handle_interface_lang, pattern="^(interface_|back_to_settings)"))
+    app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_|settings_menu|change_source|change_target|back_to_menu|help|reset_clone)"))
     app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|back_to_menu|skip_target)"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
     print("🤖 Bot started...")
     app.run_polling()
+    
