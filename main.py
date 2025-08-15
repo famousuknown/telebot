@@ -797,13 +797,13 @@ async def handle_clone_setup(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
     data = query.data
     if data == "clone_step2":
-    src_lang = get_lang_display_name(context.user_data.get("source_lang", ""))
-    await query.edit_message_text(
-        text=get_text(context, "clone_step2_text", src_lang=src_lang),
-        parse_mode="Markdown",
-        reply_markup=get_clone_step2_keyboard(context),
-    )
-    return
+        src_lang = get_lang_display_name(context.user_data.get("source_lang", ""))
+        await query.edit_message_text(
+            text=get_text(context, "clone_step2_text", src_lang=src_lang),
+            parse_mode="Markdown",
+            reply_markup=get_clone_step2_keyboard(context),
+        )
+        return
     
     # Показать все языки для шага 1
     if data == "clone_src_more":
