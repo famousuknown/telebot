@@ -26,7 +26,56 @@ ELEVENLABS_VOICE_CLONE_URL = "https://api.elevenlabs.io/v1/voices/add"
 DEFAULT_TARGET = os.getenv("TARGET_LANG", "en")
 
 recognizer = sr.Recognizer()
+# Реферальная система и лимиты
+FREE_VOICE_LIMIT = 3  # Лимит для обычных пользователей
+PREMIUM_REFERRAL_CODES = {
+    "blogger_alex": "Alex Tech",
+    "blogger_maria": "Maria Voice", 
+    "blogger_john": "John AI",
+    "vip_access": "VIP User",
+    # Добавляй сюда новые коды для блогеров
+}
 
+# Функция для проверки лимитов
+def check_voice_limit(context, user_id):
+    """Проверяет может ли пользователь использовать клонирование голоса"""
+    # Проверяем премиум статус
+    is_premium = context.user_data.get("is_premium", False)
+    if is_premium:
+        return True, None
+    
+    # Проверяем лимит для обычных пользователей
+    voice_count = context.user_data.get("voice_cloning_count", 0)
+    if voice_count >= FREE_VOICE_LIMIT:
+        return False, f"""⚠️ **Free limit reached!**
+
+🎭 You've used all {FREE_VOICE_LIMIT} free voice cloning attempts.
+
+💫 **Get unlimited access:**
+• Contact us for premium access
+• Or ask your favorite tech blogger for a special link!
+
+📱 **Free features still available:**
+• Text translation
+• Voice recognition  
+• Basic voice-to-voice"""
+    
+    return True, None
+
+def increment_voice_count(context):
+    """Увеличивает счетчик использования клонирования"""
+    if not context.user_data.get("is_premium", False):
+        current = context.user_data.get("voice_cloning_count", 0)
+        context.user_data["voice_cloning_count"] = current + 1
+
+def get_remaining_attempts(context):
+    """Возвращает количество оставшихся попыток"""
+    if context.user_data.get("is_premium", False):
+        return "Unlimited ✨"
+    
+    used = context.user_data.get("voice_cloning_count", 0)
+    remaining = FREE_VOICE_LIMIT - used
+    return max(0, remaining)
 # Многоязычные тексты интерфейса с акцентом на клонирование
 INTERFACE_TEXTS = {
     "en": {
@@ -189,7 +238,31 @@ Ready to start?""",
 • After clone: unlimited length""",
         
         # Interface language selection
-        "select_interface_lang": "🌐 **Select interface language:**\n\nThis changes the bot's menu language (not translation languages):"
+        "select_interface_lang": "🌐 **Select interface language:**\n\nThis changes the bot's menu language (not translation languages):",
+        
+        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ
+        "limit_reached": """⚠️ **Free limit reached!**
+
+🎭 You've used all {limit} free voice cloning attempts.
+
+💫 **Get unlimited access:**
+• Contact us for premium access  
+• Or ask your favorite tech blogger for a special link!
+
+📱 **Free features still available:**
+• Text translation
+• Voice recognition
+• Basic voice-to-voice""",
+
+        "premium_activated": """✨ **PREMIUM ACCESS ACTIVATED!** ✨
+
+🎭 **Unlimited voice cloning**
+🌟 **Referral code:** {code}
+👤 **Blogger:** {blogger}
+
+🚀 **You now have unlimited access to all features!**""",
+
+        "attempts_remaining": "🎭 **Voice Clone Attempts:** {remaining}"
     },
     
     "ru": {
@@ -351,7 +424,31 @@ Ready to start?""",
 • После клона: без ограничений длины""",
         
         # Interface language selection
-        "select_interface_lang": "🌐 **Выберите язык интерфейса:**\n\nЭто изменит язык меню бота (не языки перевода):"
+        "select_interface_lang": "🌐 **Выберите язык интерфейса:**\n\nЭто изменит язык меню бота (не языки перевода):",
+        
+        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ
+        "limit_reached": """⚠️ **Лимит исчерпан!**
+
+🎭 Вы использовали все {limit} бесплатные попытки клонирования.
+
+💫 **Получить безлимитный доступ:**
+• Свяжитесь с нами для премиум доступа
+• Или попросите у вашего любимого тех-блогера специальную ссылку!
+
+📱 **Бесплатные функции доступны:**
+• Перевод текста
+• Распознавание речи  
+• Базовый голосовой перевод""",
+
+        "premium_activated": """✨ **ПРЕМИУМ ДОСТУП АКТИВИРОВАН!** ✨
+
+🎭 **Безлимитное клонирование голоса**
+🌟 **Реферальный код:** {code}
+👤 **Блогер:** {blogger}
+
+🚀 **Теперь у вас безлимитный доступ ко всем функциям!**""",
+
+        "attempts_remaining": "🎭 **Попытки Клонирования:** {remaining}"
     },
     
     "es": {
@@ -362,7 +459,12 @@ Ready to start?""",
         "no": "❌ No",
         "help_title": "ℹ️ **Cómo usar:**",
         "help_content": "🎭 **CLONACIÓN DE VOZ:** Función principal del bot\n📝 **Otras funciones:** Traducción básica disponible",
-        "select_interface_lang": "🌐 **Selecciona idioma de interfaz:**\n\nEsto cambia el idioma del menú (no los idiomas de traducción):"
+        "select_interface_lang": "🌐 **Selecciona idioma de interfaz:**\n\nEsto cambia el idioma del menú (no los idiomas de traducción):",
+        
+        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ
+        "limit_reached": "⚠️ **¡Límite alcanzado!** Contacta para acceso premium.",
+        "premium_activated": "✨ **¡ACCESO PREMIUM ACTIVADO!** ✨",  
+        "attempts_remaining": "🎭 **Intentos:** {remaining}"
     }
 }
 
@@ -624,6 +726,10 @@ def get_status_text(context):
         "mode_voice_clone": get_text(context, "mode_voice_clone"),
     }
     mode_display = mode_names.get(mode, get_text(context, "mode_not_selected"))
+    
+    # НОВОЕ: Добавляем информацию о лимитах
+    remaining = get_remaining_attempts(context)
+    attempts_info = get_text(context, "attempts_remaining", remaining=remaining)
 
     return f"""{get_text(context, "status_title")}
 
@@ -631,33 +737,57 @@ def get_status_text(context):
 {get_text(context, "status_from")} {src_display}
 {get_text(context, "status_to")} {tgt_display}
 {get_text(context, "status_cloned")} {cloned}
+{attempts_info}
 
 {get_text(context, "status_footer")}"""
+
 
 def get_back_button(context):
     return InlineKeyboardMarkup([[InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]])
 
 # /start handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Определяем язык интерфейса пользователя
-    user_lang = update.effective_user.language_code or "en"
-    
-    # Поддерживаемые языки интерфейса
-    supported_interface_langs = list(INTERFACE_LANGS.values())
-    if user_lang not in supported_interface_langs:
-        # Если точного совпадения нет, пробуем найти по первой части (ru-RU -> ru)
-        lang_base = user_lang.split('-')[0] if '-' in user_lang else user_lang
-        if lang_base in supported_interface_langs:
-            user_lang = lang_base
-        else:
-            user_lang = "en"  # По умолчанию английский
-    
     # Инициализация пользовательских данных
     context.user_data.setdefault("mode", None)
     context.user_data.setdefault("source_lang", None)
     context.user_data.setdefault("target_lang", DEFAULT_TARGET)
+    context.user_data.setdefault("voice_cloning_count", 0)
+    context.user_data.setdefault("is_premium", False)
+    
+    # Определяем язык интерфейса пользователя
+    user_lang = update.effective_user.language_code or "en"
+    supported_interface_langs = list(INTERFACE_LANGS.values())
+    if user_lang not in supported_interface_langs:
+        lang_base = user_lang.split('-')[0] if '-' in user_lang else user_lang
+        if lang_base in supported_interface_langs:
+            user_lang = lang_base
+        else:
+            user_lang = "en"
+    
     context.user_data.setdefault("interface_lang", user_lang)
     
+    # НОВОЕ: Обработка реферальных кодов
+    args = context.args
+    if args and len(args) > 0:
+        referral_code = args[0]
+        
+        # Проверяем валидность реферального кода
+        if referral_code in PREMIUM_REFERRAL_CODES:
+            context.user_data["is_premium"] = True
+            context.user_data["referral_code"] = referral_code
+            context.user_data["blogger_name"] = PREMIUM_REFERRAL_CODES[referral_code]
+            
+            # Отправляем сообщение об активации премиума
+            premium_msg = get_text(context, "premium_activated", 
+                                 code=referral_code, 
+                                 blogger=PREMIUM_REFERRAL_CODES[referral_code])
+            
+            await update.message.reply_text(
+                premium_msg,
+                parse_mode="Markdown"
+            )
+    
+    # Обычное приветствие
     welcome_text = f"""{get_text(context, "welcome_title")}
 
 {get_text(context, "welcome_text")}"""
@@ -667,7 +797,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=get_main_menu(context),
     )
-
 # Handle mode selection callbacks
 async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1033,6 +1162,7 @@ async def clone_user_voice(user_id: int, audio_file_path: str, source_language: 
                 pass
 
 # Handle voice messages
+# Handle voice messages
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mode = context.user_data.get("mode")
     if not mode:
@@ -1130,7 +1260,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 {translated}"""
 
             await processing_msg.edit_text(result_text, parse_mode="Markdown", reply_markup=get_back_button(context))
-# Продолжение функции handle_voice (mode_voice_tts)
+
         elif mode == "mode_voice_tts":
             await processing_msg.edit_text(get_text(context, "generating_voice"))
             
@@ -1171,8 +1301,19 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=get_settings_menu(context)
                 )
                 return
-                
+            
+            # 🆕 НОВОЕ: Проверяем лимиты перед клонированием
             user_id = update.effective_user.id
+            can_use, limit_msg = check_voice_limit(context, user_id)
+            
+            if not can_use:
+                await processing_msg.edit_text(
+                    limit_msg,
+                    parse_mode="Markdown",
+                    reply_markup=get_back_button(context)
+                )
+                return
+                
             existing = context.user_data.get("cloned_voice_id")
             
             if existing:
@@ -1200,6 +1341,10 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 if os.path.exists(mp3_path):
                     os.remove(mp3_path)
+                
+                # 🆕 НОВОЕ: Увеличиваем счетчик только при успешном клонировании
+                if voice_id:
+                    increment_voice_count(context)
 
             if voice_id:
                 context.user_data["cloned_voice_id"] = voice_id
@@ -1282,7 +1427,6 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             get_text(context, "error_occurred", error=str(e)), 
             reply_markup=get_back_button(context)
         )
-
 # Entry point
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
