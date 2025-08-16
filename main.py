@@ -751,7 +751,17 @@ def get_status_text(context):
 
 def get_back_button(context):
     return InlineKeyboardMarkup([[InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]])
-
+def convert_lang_code_for_translation(lang_code):
+    """Конвертирует коды языков для Google Translate"""
+    # Google Translate использует только базовые коды
+    if lang_code == "en-GB":
+        return "en"  # Британский английский → обычный английский для перевода
+    elif lang_code == "zh-TW":
+        return "zh-TW"  # Традиционный китайский остается
+    elif lang_code == "zh-CN":
+        return "zh-CN"  # Упрощенный китайский остается
+    else:
+        return lang_code
 # /start handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Инициализация пользовательских данных
@@ -1109,8 +1119,10 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     processing_msg = await update.message.reply_text(get_text(context, "translating"))
 
     try:
-        translated = GoogleTranslator(source=src, target=tgt).translate(original_text)
-        
+        translated = GoogleTranslator(
+            source=convert_lang_code_for_translation(src), 
+            target=convert_lang_code_for_translation(tgt)
+        ).translate(original_text)        
         src_display = get_lang_display_name(src) if src != "auto" else get_text(context, "auto_detect")
         tgt_display = get_lang_display_name(tgt)
         
@@ -1244,7 +1256,11 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Translate
     try:
         await processing_msg.edit_text(get_text(context, "translating"))
-        translated = GoogleTranslator(source=src if src != "auto" else "auto", target=tgt).translate(text)
+        src_for_translation = "auto" if src == "auto" else convert_lang_code_for_translation(src)
+        translated = GoogleTranslator(
+            source=src_for_translation, 
+            target=convert_lang_code_for_translation(tgt)
+        ).translate(text)
     except Exception as e:
         await processing_msg.edit_text(
             get_text(context, "translation_error", error=str(e)), 
