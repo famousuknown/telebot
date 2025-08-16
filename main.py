@@ -524,6 +524,7 @@ async def safe_send_menu(query_or_message, context, is_query=True):
 LANGS = {
     "🇺🇸 English": "en",
     "🇷🇺 Русский": "ru",
+    "🇬🇧 English (UK)": "en-GB", 
     "🇸🇦 العربية": "ar",
     "🇨🇳 中文 (简体)": "zh-CN",
     "🇹🇼 中文 (繁體)": "zh-TW",
@@ -536,6 +537,7 @@ LANGS = {
     "🇦🇫 پښتو": "ps",
     "🇯🇵 日本語": "ja",
     "🇰🇷 한국어": "ko",
+    "🇹🇷 Türkçe": "tr",
 }
 
 # Языки интерфейса (поддерживаемые для UI)
@@ -557,10 +559,12 @@ def get_quick_lang_keyboard(context, prefix: str, show_skip=False):
     popular_langs = [
         ("🇺🇸 English", "en"),
         ("🇷🇺 Русский", "ru"),
+        ("🇬🇧 English (UK)", "en-GB"),
         ("🇨🇳 中文", "zh-CN"),
         ("🇸🇦 العربية", "ar"),
         ("🇪🇸 Español", "es"),
         ("🇫🇷 Français", "fr"),
+        ("🇹🇷 Türkçe", "tr")
     ]
     
     buttons = []
@@ -1269,10 +1273,18 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             tts_lang = tgt
             try:
-                tts = gTTS(translated, lang=tts_lang)
+                # Специальная обработка для британского английского
+                if tts_lang == "en-GB":
+                    tts = gTTS(translated, lang="en", tld="co.uk")  # Британский акцент
+                else:
+                    tts = gTTS(translated, lang=tts_lang)
             except Exception:
-                tts = gTTS(translated, lang=tts_lang.split("-")[0])
-
+                # Фолбэк
+                base_lang = tts_lang.split("-")[0]
+                if base_lang == "en" and tts_lang == "en-GB":
+                    tts = gTTS(translated, lang="en", tld="co.uk")
+                else:
+                    tts = gTTS(translated, lang=base_lang)    
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
                 tts.save(tmp_file.name)
                 tmp_file_path = tmp_file.name
