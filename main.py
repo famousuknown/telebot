@@ -79,6 +79,7 @@ def get_remaining_attempts(context):
     remaining = FREE_VOICE_LIMIT - used
     return max(0, remaining)
 # Многоязычные тексты интерфейса с акцентом на клонирование
+# Многоязычные тексты интерфейса с акцентом на клонирование
 INTERFACE_TEXTS = {
     "en": {
         "welcome_title": "🎭✨ **AI VOICE CLONE BOT** ✨🎭",
@@ -242,7 +243,7 @@ Ready to start?""",
         # Interface language selection
         "select_interface_lang": "🌐 **Select interface language:**\n\nThis changes the bot's menu language (not translation languages):",
         
-        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ
+        # Реферальная система
         "limit_reached": """⚠️ **Free limit reached!**
 
 🎭 You've used all {limit} free voice cloning attempts.
@@ -259,12 +260,31 @@ Ready to start?""",
         "premium_activated": """✨ **PREMIUM ACCESS ACTIVATED!** ✨
 
 🎭 **Unlimited voice cloning**
-"🌟 **Referral code:** `{code}`"
-"👤 **Blogger:** `{blogger}`"
+🌟 **Referral code:** `{code}`
+👤 **Blogger:** `{blogger}`
 
 🚀 **You now have unlimited access to all features!**""",
 
-        "attempts_remaining": "🎭 **Voice Clone Attempts:** {remaining}"
+        "attempts_remaining": "🎭 **Voice Clone Attempts:** {remaining}",
+        
+        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ СИСТЕМЫ ОПЛАТЫ:
+        "premium_price": "💎 **Premium - $8.99/month**",
+        "russian_user_question": """🇷🇺 **Payment method selection**
+
+Are you from Russia? This helps us choose the best payment option for you.
+
+🔹 **Yes** - Russian payment methods (₽)
+🔹 **No** - International payment methods ($)""",
+
+        "btn_yes_russia": "🇷🇺 Yes, I'm from Russia",
+        "btn_no_russia": "🌍 No, international payment",
+        "payment_method_selected": "✅ **Payment method selected**\n\nYou can now upgrade to Premium!",
+        "choose_premium_plan": """💎 **Choose Premium Plan**
+
+**Monthly:** $8.99/month
+**Yearly:** $89.90/year (save $18!)
+
+Unlimited voice cloning for all languages 🎭"""
     },
     
     "ru": {
@@ -428,7 +448,7 @@ Ready to start?""",
         # Interface language selection
         "select_interface_lang": "🌐 **Выберите язык интерфейса:**\n\nЭто изменит язык меню бота (не языки перевода):",
         
-        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ
+        # Реферальная система
         "limit_reached": """⚠️ **Лимит исчерпан!**
 
 🎭 Вы использовали все {limit} бесплатные попытки клонирования.
@@ -450,7 +470,26 @@ Ready to start?""",
 
 🚀 **Теперь у вас безлимитный доступ ко всем функциям!**""",
 
-        "attempts_remaining": "🎭 **Попытки Клонирования:** {remaining}"
+        "attempts_remaining": "🎭 **Попытки Клонирования:** {remaining}",
+        
+        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ СИСТЕМЫ ОПЛАТЫ:
+        "premium_price": "💎 **Премиум - $8.99/месяц**",
+        "russian_user_question": """🇷🇺 **Выбор способа оплаты**
+
+Вы из России? Это поможет выбрать лучший способ оплаты.
+
+🔹 **Да** - Российские способы оплаты (₽)
+🔹 **Нет** - Международные способы оплаты ($)""",
+
+        "btn_yes_russia": "🇷🇺 Да, из России",
+        "btn_no_russia": "🌍 Нет, международная оплата",
+        "payment_method_selected": "✅ **Способ оплаты выбран**\n\nТеперь вы можете перейти на Премиум!",
+        "choose_premium_plan": """💎 **Выберите Премиум План**
+
+**Месячный:** $8.99/месяц  
+**Годовой:** $89.90/год (экономия $18!)
+
+Безлимитное клонирование голоса на всех языках 🎭"""
     },
     
     "es": {
@@ -463,12 +502,66 @@ Ready to start?""",
         "help_content": "🎭 **CLONACIÓN DE VOZ:** Función principal del bot\n📝 **Otras funciones:** Traducción básica disponible",
         "select_interface_lang": "🌐 **Selecciona idioma de interfaz:**\n\nEsto cambia el idioma del menú (no los idiomas de traducción):",
         
-        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ
+        # Реферальная система  
         "limit_reached": "⚠️ **¡Límite alcanzado!** Contacta para acceso premium.",
         "premium_activated": "✨ **¡ACCESO PREMIUM ACTIVADO!** ✨",  
-        "attempts_remaining": "🎭 **Intentos:** {remaining}"
+        "attempts_remaining": "🎭 **Intentos:** {remaining}",
+        
+        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ СИСТЕМЫ ОПЛАТЫ:
+            "premium_price": "💎 **Premium - $8.99/mes**",
+            "russian_user_question": """🇷🇺 **Selección de método de pago**
+
+¿Eres de Rusia? Esto nos ayuda a elegir la mejor opción de pago.
+
+🔹 **Sí** - Métodos de pago rusos (₽)
+🔹 **No** - Métodos de pago internacionales ($)""",
+
+        "btn_yes_russia": "🇷🇺 Sí, soy de Rusia",
+        "btn_no_russia": "🌍 No, pago internacional",
+        "payment_method_selected": "✅ **Método de pago seleccionado**\n\n¡Ahora puedes actualizar a Premium!",
+        "choose_premium_plan": """💎 **Elige Plan Premium**
+
+**Mensual:** $8.99/mes
+**Anual:** $89.90/año (¡ahorra $18!)
+
+Clonación de voz ilimitada para todos los idiomas 🎭"""
     }
-}
+}        
+        
+
+def determine_payment_method(user_lang):
+    """Определяет нужно ли спрашивать про способ оплаты"""
+    # Спрашиваем только русскоязычных пользователей
+    return user_lang == "ru"
+
+def get_payment_region_keyboard(context):
+    """Клавиатура для выбора региона оплаты (только для русских)"""
+    keyboard = [
+        [InlineKeyboardButton(get_text(context, "btn_yes_russia"), callback_data="payment_region_russia")],
+        [InlineKeyboardButton(get_text(context, "btn_no_russia"), callback_data="payment_region_international")],
+        [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_premium_plans_keyboard(context):
+    """Клавиатура с планами Premium"""
+    payment_method = context.user_data.get("payment_method", "lemonsqueezy")
+    
+    if payment_method == "yookassa":
+        # Российские цены в рублях
+        monthly_text = "💳 Месячный - 699₽"
+        yearly_text = "🌟 Годовой - 6990₽"
+    else:
+        # Международные цены в долларах  
+        monthly_text = "💳 Monthly - $8.99"
+        yearly_text = "🌟 Yearly - $89.90"
+    
+    keyboard = [
+        [InlineKeyboardButton(monthly_text, callback_data="buy_premium_monthly")],
+        [InlineKeyboardButton(yearly_text, callback_data="buy_premium_yearly")],
+        [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
 
 # Функция получения локализованного текста
 def get_text(context, key, **kwargs):
@@ -692,6 +785,10 @@ def get_main_menu(context):
         # Разделитель
         [InlineKeyboardButton("━━━━━━━━━━━━━━━━━━━━━━", callback_data="separator")],
         
+        # 🆕 ОБНОВЛЕННАЯ КНОПКА С ЦЕНОЙ:
+        [InlineKeyboardButton("💎 Upgrade to Premium - $8.99", callback_data="show_premium_plans")],
+
+
         # Бесплатные функции (менее заметные)
         [InlineKeyboardButton("📝 Text Translation (Free)", callback_data="mode_text")],
         [
@@ -946,6 +1043,14 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
             parse_mode="Markdown",
             reply_markup=get_back_button(context),
         )
+        return
+
+    if data == "show_premium_plans":
+        await handle_premium_plans(update, context)
+        return
+    
+    if data.startswith("payment_region_") or data.startswith("buy_premium_"):
+        await handle_premium_plans(update, context)
         return
 
     # Change source language
@@ -1216,6 +1321,77 @@ async def clone_user_voice(user_id: int, audio_file_path: str, source_language: 
 
 # Handle voice messages
 # Handle voice messages
+async def handle_premium_plans(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    
+    # Показать планы Premium
+    if data == "show_premium_plans":
+        user_lang = context.user_data.get("interface_lang", "en")
+        
+        # Проверяем нужно ли спрашивать про способ оплаты
+        if determine_payment_method(user_lang):
+            # Спрашиваем русскоязычного пользователя
+            await query.edit_message_text(
+                text=get_text(context, "russian_user_question"),
+                parse_mode="Markdown",
+                reply_markup=get_payment_region_keyboard(context)
+            )
+        else:
+            # Для всех остальных - сразу показываем планы с LemonSqueezy
+            context.user_data["payment_method"] = "lemonsqueezy"
+            await query.edit_message_text(
+                text=get_text(context, "choose_premium_plan"),
+                parse_mode="Markdown", 
+                reply_markup=get_premium_plans_keyboard(context)
+            )
+        return
+    
+    # Обработка выбора региона оплаты
+    if data == "payment_region_russia":
+        context.user_data["payment_method"] = "yookassa"
+        context.user_data["payment_currency"] = "RUB"
+        context.user_data["currency_symbol"] = "₽"
+        
+        await query.edit_message_text(
+            text=get_text(context, "payment_method_selected") + f"\n\n{get_text(context, 'choose_premium_plan')}",
+            parse_mode="Markdown",
+            reply_markup=get_premium_plans_keyboard(context)
+        )
+        return
+    
+    if data == "payment_region_international":
+        context.user_data["payment_method"] = "lemonsqueezy"
+        context.user_data["payment_currency"] = "USD"
+        context.user_data["currency_symbol"] = "$"
+        
+        await query.edit_message_text(
+            text=get_text(context, "payment_method_selected") + f"\n\n{get_text(context, 'choose_premium_plan')}",
+            parse_mode="Markdown",
+            reply_markup=get_premium_plans_keyboard(context)
+        )
+        return
+    
+    # Обработка покупки (пока заглушки)
+    if data in ["buy_premium_monthly", "buy_premium_yearly"]:
+        plan_type = "monthly" if data == "buy_premium_monthly" else "yearly"
+        payment_method = context.user_data.get("payment_method", "lemonsqueezy")
+        
+        if payment_method == "yookassa":
+            await query.edit_message_text(
+                text="🔄 **ЮKassa integration coming soon...**\n\nСкоро будет доступна оплата российскими картами!",
+                parse_mode="Markdown",
+                reply_markup=get_back_button(context)
+            )
+        else:
+            await query.edit_message_text(
+                text="🔄 **LemonSqueezy integration coming soon...**\n\nInternational payments will be available soon!",
+                parse_mode="Markdown", 
+                reply_markup=get_back_button(context)
+            )
+        return
+
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mode = context.user_data.get("mode")
     if not mode:
