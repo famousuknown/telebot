@@ -1,6 +1,7 @@
 import os
 import requests
 from gtts import gTTS
+from datetime import datetime
 from io import BytesIO
 from pydub import AudioSegment
 import speech_recognition as sr
@@ -723,6 +724,11 @@ def get_status_text(context):
     mode = context.user_data.get("mode")
     cloned = get_text(context, "yes") if context.user_data.get("cloned_voice_id") else get_text(context, "no")
     
+    # Региональная информация
+    user_region = context.user_data.get("user_region", "GLOBAL")
+    user_country = context.user_data.get("user_country", "US")
+    currency_symbol = context.user_data.get("currency_symbol", "$")
+    
     src_display = get_lang_display_name(src) if src else get_text(context, "auto_detect")
     tgt_display = get_lang_display_name(tgt)
 
@@ -734,9 +740,12 @@ def get_status_text(context):
     }
     mode_display = mode_names.get(mode, get_text(context, "mode_not_selected"))
     
-    # НОВОЕ: Добавляем информацию о лимитах
+    # Информация о лимитах
     remaining = get_remaining_attempts(context)
     attempts_info = get_text(context, "attempts_remaining", remaining=remaining)
+    
+    # Региональная информация (пока без цен - добавим в следующем этапе)
+    region_info = f"🌍 **Region:** {user_region} ({user_country}) {currency_symbol}"
 
     return f"""{get_text(context, "status_title")}
 
@@ -745,6 +754,7 @@ def get_status_text(context):
 {get_text(context, "status_to")} {tgt_display}
 {get_text(context, "status_cloned")} {cloned}
 {attempts_info}
+{region_info}
 
 {get_text(context, "status_footer")}"""
 
@@ -764,12 +774,23 @@ def convert_lang_code_for_translation(lang_code):
         return lang_code
 # /start handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    # Определяем регион пользователя по IP
+    region_data = determine_user_region()
+    
     # Инициализация пользовательских данных
     context.user_data.setdefault("mode", None)
     context.user_data.setdefault("source_lang", None)
     context.user_data.setdefault("target_lang", DEFAULT_TARGET)
     context.user_data.setdefault("voice_cloning_count", 0)
     context.user_data.setdefault("is_premium", False)
+    
+    # 🆕 СОХРАНЯЕМ ДАННЫЕ О РЕГИОНЕ
+    context.user_data["user_region"] = region_data['region']
+    context.user_data["user_country"] = region_data['country'] 
+    context.user_data["user_currency"] = region_data['currency']
+    context.user_data["currency_symbol"] = region_data['symbol']
     
     # Определяем язык интерфейса пользователя
     user_lang = update.effective_user.language_code or "en"
@@ -783,31 +804,44 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     context.user_data.setdefault("interface_lang", user_lang)
     
-    # НОВОЕ: Обработка реферальных кодов
+    # Обработка реферальных кодов (существующий код)
     args = context.args
     if args and len(args) > 0:
         referral_code = args[0]
+        print(f"🎯 Referral code received: {referral_code}")
         
-        # Проверяем валидность реферального кода
         if referral_code in PREMIUM_REFERRAL_CODES:
+            print(f"✅ Valid referral code: {referral_code}")
             context.user_data["is_premium"] = True
             context.user_data["referral_code"] = referral_code
             context.user_data["blogger_name"] = PREMIUM_REFERRAL_CODES[referral_code]
             
-            # Отправляем сообщение об активации премиума
             premium_msg = get_text(context, "premium_activated", 
                                  code=referral_code, 
                                  blogger=PREMIUM_REFERRAL_CODES[referral_code])
             
-            await update.message.reply_text(
-                premium_msg,
-                parse_mode="Markdown"
-            )
+            try:
+                await update.message.reply_text(
+                    premium_msg,
+                    parse_mode="Markdown"
+                )
+            except Exception as e:
+                print(f"Markdown error: {e}")
+                simple_msg = f"✨ PREMIUM ACCESS ACTIVATED! ✨\n\nReferral code: {referral_code}\nBlogger: {PREMIUM_REFERRAL_CODES[referral_code]}\n\nYou now have unlimited access!"
+                await update.message.reply_text(simple_msg)
+        else:
+            print(f"❌ Invalid referral code: {referral_code}")
+    else:
+        print("📝 No args provided")
     
-    # Обычное приветствие
+    # Обычное приветствие с информацией о регионе
     welcome_text = f"""{get_text(context, "welcome_title")}
 
-{get_text(context, "welcome_text")}"""
+{get_text(context, "welcome_text")}
+
+🌍 **Detected region:** {region_data['name']} ({region_data['country']})"""
+
+    print(f"👤 User {user_id} started - Region: {region_data['region']} Country: {region_data['country']}")
 
     await update.message.reply_text(
         welcome_text,
@@ -1456,6 +1490,83 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             get_text(context, "error_occurred", error=str(e)), 
             reply_markup=get_back_button(context)
         )
+
+def get_user_country_by_ip():
+    """Определяет страну пользователя по IP адресу"""
+    try:
+        # Используем бесплатный сервис (1000 запросов в день)
+        response = requests.get("https://ipapi.co/country_code/", timeout=5)
+        if response.status_code == 200:
+            country_code = response.text.strip().upper()
+            print(f"🌍 Detected country by IP: {country_code}")
+            return country_code
+        else:
+            print(f"⚠️ IP API error: {response.status_code}")
+            return "US"  # По умолчанию
+    except Exception as e:
+        print(f"⚠️ IP detection error: {e}")
+        return "US"  # По умолчанию
+
+def get_region_by_country(country_code):
+    """Определяет платежный регион по коду страны"""
+    # Страны СНГ и России
+    cis_countries = {
+        'RU', 'BY', 'KZ', 'KG', 'TJ', 'UZ', 'TM', 
+        'AM', 'AZ', 'GE', 'MD', 'UA'
+    }
+    
+    # Азиатские страны с льготными ценами
+    asia_countries = {
+        'IN', 'CN', 'TH', 'VN', 'ID', 'MY', 'PH', 
+        'BD', 'PK', 'LK', 'MM', 'KH', 'LA'
+    }
+    
+    if country_code in cis_countries:
+        return 'CIS'
+    elif country_code in asia_countries:
+        return 'ASIA'  
+    else:
+        return 'GLOBAL'  # США, Европа, остальной мир
+
+def get_region_info(region):
+    """Возвращает информацию о регионе"""
+    region_data = {
+        'CIS': {
+            'name': 'СНГ',
+            'currency': 'RUB',
+            'symbol': '₽',
+            'countries': ['Россия', 'Казахстан', 'Беларусь', 'и др.']
+        },
+        'ASIA': {
+            'name': 'Азия',
+            'currency': 'USD', 
+            'symbol': '$',
+            'countries': ['Индия', 'Китай', 'Таиланд', 'и др.']
+        },
+        'GLOBAL': {
+            'name': 'Global',
+            'currency': 'USD',
+            'symbol': '$', 
+            'countries': ['США', 'Европа', 'остальной мир']
+        }
+    }
+    return region_data.get(region, region_data['GLOBAL'])
+
+def determine_user_region():
+    """Определяет регион пользователя для системы оплаты"""
+    country = get_user_country_by_ip()
+    region = get_region_by_country(country)
+    
+    region_info = get_region_info(region)
+    print(f"🎯 User region: {region} ({region_info['name']}) - Currency: {region_info['symbol']}")
+    
+    return {
+        'region': region,
+        'country': country,
+        'currency': region_info['currency'],
+        'symbol': region_info['symbol'],
+        'name': region_info['name']
+    }
 # Entry point
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
