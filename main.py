@@ -785,10 +785,9 @@ def get_main_menu(context):
         # Разделитель
         [InlineKeyboardButton("━━━━━━━━━━━━━━━━━━━━━━", callback_data="separator")],
         
-        # 🆕 ОБНОВЛЕННАЯ КНОПКА С ЦЕНОЙ:
+        # 🆕 КНОПКА ПРЕМИУМ С ЦЕНОЙ:
         [InlineKeyboardButton("💎 Upgrade to Premium - $8.99", callback_data="show_premium_plans")],
-
-
+        
         # Бесплатные функции (менее заметные)
         [InlineKeyboardButton("📝 Text Translation (Free)", callback_data="mode_text")],
         [
@@ -1069,6 +1068,29 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
             parse_mode="Markdown", 
             reply_markup=get_quick_lang_keyboard(context, "tgt_"),
         )
+        return
+
+    if data == "show_premium_plans":
+        user_lang = context.user_data.get("interface_lang", "en")
+        
+        if user_lang == "ru":
+            # Для русских - показываем вопрос
+            await query.edit_message_text(
+                text="🇷🇺 **ТЕСТ: Вопрос появился!**\n\nВы из России? (Обработчики пока не готовы)",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
+                ])
+            )
+        else:
+            # Для всех остальных - показываем планы
+            await query.edit_message_text(
+                text="💎 **ТЕСТ: Планы показались!**\n\nInternational plans (Handlers not ready yet)",
+                parse_mode="Markdown", 
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Back", callback_data="back_to_menu")]
+                ])
+            )
         return
 
     # Back to menu  
