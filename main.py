@@ -949,6 +949,7 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
     data = query.data
+    print(f"🎯 Received callback: {data}")
     
     # Игнорируем нажатие на разделитель
     if data == "separator":
@@ -1770,7 +1771,7 @@ if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface|clone_info|separator)"))
+    app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface|clone_info|separator|show_premium_plans)"))
     app.add_handler(CallbackQueryHandler(handle_clone_setup, pattern="^(clone_src_|clone_tgt_|clone_.*_more)"))
     app.add_handler(CallbackQueryHandler(handle_interface_lang, pattern="^(interface_|back_to_settings)"))
     app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|back_to_menu|skip_target)"))
