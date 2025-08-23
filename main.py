@@ -1348,8 +1348,7 @@ async def handle_premium_plans(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     data = query.data
-    
-    # Показать планы Premium
+        # 🆕 ПОЛНЫЙ ОБРАБОТЧИК ПРЕМИУМ:
     if data == "show_premium_plans":
         user_lang = context.user_data.get("interface_lang", "en")
         
@@ -1364,6 +1363,9 @@ async def handle_premium_plans(update: Update, context: ContextTypes.DEFAULT_TYP
         else:
             # Для всех остальных - сразу показываем планы с LemonSqueezy
             context.user_data["payment_method"] = "lemonsqueezy"
+            context.user_data["payment_currency"] = "USD"
+            context.user_data["currency_symbol"] = "$"
+            
             await query.edit_message_text(
                 text=get_text(context, "choose_premium_plan"),
                 parse_mode="Markdown", 
@@ -1371,6 +1373,7 @@ async def handle_premium_plans(update: Update, context: ContextTypes.DEFAULT_TYP
             )
         return
     
+        
     # Обработка выбора региона оплаты
     if data == "payment_region_russia":
         context.user_data["payment_method"] = "yookassa"
@@ -1396,20 +1399,25 @@ async def handle_premium_plans(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return
     
+    
+        
     # Обработка покупки (пока заглушки)
     if data in ["buy_premium_monthly", "buy_premium_yearly"]:
         plan_type = "monthly" if data == "buy_premium_monthly" else "yearly"
         payment_method = context.user_data.get("payment_method", "lemonsqueezy")
+        currency_symbol = context.user_data.get("currency_symbol", "$")
         
         if payment_method == "yookassa":
+            price = "809₽" if plan_type == "monthly" else "8090₽"
             await query.edit_message_text(
-                text="🔄 **ЮKassa integration coming soon...**\n\nСкоро будет доступна оплата российскими картами!",
+                text=f"🔄 **ЮKassa скоро будет доступна!**\n\nПлан: {plan_type}\nЦена: {price}\n\nСкоро будет доступна оплата российскими картами!",
                 parse_mode="Markdown",
                 reply_markup=get_back_button(context)
             )
         else:
+            price = "$8.99" if plan_type == "monthly" else "$89.90"
             await query.edit_message_text(
-                text="🔄 **LemonSqueezy integration coming soon...**\n\nInternational payments will be available soon!",
+                text=f"🔄 **LemonSqueezy скоро будет доступен!**\n\nPlan: {plan_type}\nPrice: {price}\n\nInternational payments will be available soon!",
                 parse_mode="Markdown", 
                 reply_markup=get_back_button(context)
             )
@@ -1766,12 +1774,46 @@ def determine_user_region():
         'symbol': region_info['symbol'],
         'name': region_info['name']
     }
+
+def determine_payment_method(user_lang):
+    """Определяет нужно ли спрашивать про способ оплаты"""
+    return user_lang == "ru"
+
+def get_payment_region_keyboard(context):
+    """Клавиатура для выбора региона оплаты (только для русских)"""
+    keyboard = [
+        [InlineKeyboardButton(get_text(context, "btn_yes_russia"), callback_data="payment_region_russia")],
+        [InlineKeyboardButton(get_text(context, "btn_no_russia"), callback_data="payment_region_international")],
+        [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_premium_plans_keyboard(context):
+    """Клавиатура с планами Premium"""
+    payment_method = context.user_data.get("payment_method", "lemonsqueezy")
+    
+    if payment_method == "yookassa":
+        # Российские цены в рублях (примерно $8.99 * 90 = 809₽)
+        monthly_text = "💳 Месячный - 809₽"
+        yearly_text = "🌟 Годовой - 8090₽ (экономия 1618₽!)"
+    else:
+        # Международные цены в долларах  
+        monthly_text = "💳 Monthly - $8.99"
+        yearly_text = "🌟 Yearly - $89.90 (save $18!)"
+    
+    keyboard = [
+        [InlineKeyboardButton(monthly_text, callback_data="buy_premium_monthly")],
+        [InlineKeyboardButton(yearly_text, callback_data="buy_premium_yearly")],
+        [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
 # Entry point
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface|clone_info|separator|show_premium_plans)"))
+    app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface|clone_info|separator|show_premium_plans|payment_region_|buy_premium_)"))
     app.add_handler(CallbackQueryHandler(handle_clone_setup, pattern="^(clone_src_|clone_tgt_|clone_.*_more)"))
     app.add_handler(CallbackQueryHandler(handle_interface_lang, pattern="^(interface_|back_to_settings)"))
     app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|back_to_menu|skip_target)"))
