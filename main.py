@@ -1512,7 +1512,50 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_main_menu(context)
         )
         return
+
+    elif mode == "mode_text_to_voice":
+        # Проверяем есть ли клонированный голос
+        if not context.user_data.get("cloned_voice_id"):
+            await update.message.reply_text(
+                get_text(context, "need_cloned_voice_for_text"),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎭 Clone Voice", callback_data="mode_voice_clone")]
+                ])
+            )
+            return
         
+        user_text = update.message.text
+        
+        # Показываем выбор языка для озвучки
+        await update.message.reply_text(
+            get_text(context, "select_voice_language", text=user_text[:100]),
+            parse_mode="Markdown",
+            reply_markup=get_quick_lang_keyboard(context, "tts_lang_")
+        )
+        
+        # Сохраняем текст для озвучки
+        context.user_data["text_to_synthesize"] = user_text
+        return
+
+    src = context.user_data.get("source_lang") or "auto"
+    tgt = context.user_data.get("target_lang") or DEFAULT_TARGET
+
+    original_text = update.message.text
+
+    # Показываем что происходит
+    processing_msg = await update.message.reply_text(get_text(context, "translating"))
+
+    try:
+        translated = GoogleTranslator(
+            source=convert_lang_code_for_translation(src), 
+            target=convert_lang_code_for_translation(tgt)
+        ).translate(original_text)        
+        src_display = get_lang_display_name(src) if src != "auto" else get_text(context, "auto_detect")
+        tgt_display = get_lang_display_name(tgt)
+        
+        result_text = f"""{get_text(context, "translation_complete")}
+
 {get_text(context, "from_label", src_lang=src_display)}
 {original_text}
 
