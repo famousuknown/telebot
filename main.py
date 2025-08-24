@@ -285,7 +285,47 @@ Are you from Russia? This helps us choose the best payment option for you.
 **Yearly:** $89.90/year (save $18!)
 
 Unlimited voice cloning for all languages 🎭"""
+
+        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ ФУНКЦИИ ТЕКСТ → ГОЛОС:
+        "mode_text_to_voice": "🎤 Text → Your Voice",
+        "desc_text_to_voice_mode": """🎤 **Text → Your Voice**
+
+Type any text and get it spoken with YOUR cloned voice in any language.
+
+*Premium feature - uses your unique voice*""",
+
+        "text_to_voice_ready": """🎤 **Text → Voice Mode Active**
+
+📝 **How it works:**
+1. Type any text in any language
+2. Select target language for speech
+3. Get audio with YOUR cloned voice
+
+✨ **Perfect for:**
+• YouTube videos
+• Podcasts  
+• Voice messages
+• Language learning
+
+🎭 **Type your message now:**""",
+
+        "need_cloned_voice_for_text": """⚠️ **Voice clone required**
+
+To use Text → Voice, you need to clone your voice first:
+
+1. Select 🎭 AI Voice Clone mode
+2. Record 30+ seconds in your language  
+3. Then return to Text → Voice
+
+🎤 **Clone your voice now?**""",
+
+        "select_voice_language": """🎤 **Select voice language**
+
+Your text: "{text}"
+
+Choose language for your cloned voice:"""
     },
+
     
     "ru": {
         "welcome_title": "🎭✨ **БОТ КЛОНИРОВАНИЯ ГОЛОСА** ✨🎭",
@@ -490,6 +530,47 @@ Unlimited voice cloning for all languages 🎭"""
 **Годовой:** $89.90/год (экономия $18!)
 
 Безлимитное клонирование голоса на всех языках 🎭"""
+
+# В русский словарь "ru" добавь эти ключи (перед закрывающей скобкой):
+
+        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ ФУНКЦИИ ТЕКСТ → ГОЛОС:
+        "mode_text_to_voice": "🎤 Текст → Ваш Голос",
+        "desc_text_to_voice_mode": """🎤 **Текст → Ваш Голос**
+
+Напишите любой текст и получите его вашим клонированным голосом на любом языке.
+
+*Премиум функция - использует ваш уникальный голос*""",
+
+        "text_to_voice_ready": """🎤 **Режим Текст → Голос активен**
+
+📝 **Как работает:**
+1. Напишите любой текст на любом языке
+2. Выберите язык для озвучки
+3. Получите аудио вашим клонированным голосом
+
+✨ **Идеально для:**
+• Видео на YouTube
+• Подкасты
+• Голосовые сообщения
+• Изучение языков
+
+🎭 **Напишите ваше сообщение:**""",
+
+        "need_cloned_voice_for_text": """⚠️ **Нужен клон голоса**
+
+Для использования Текст → Голос нужно сначала клонировать голос:
+
+1. Выберите режим 🎭 Клон Голоса ИИ
+2. Запишите 30+ секунд на вашем языке
+3. Затем возвращайтесь к Текст → Голос  
+
+🎤 **Клонировать голос сейчас?**""",
+
+        "select_voice_language": """🎤 **Выберите язык озвучки**
+
+Ваш текст: "{text}"
+
+Выберите язык для вашего клонированного голоса:"""
     },
     
     "es": {
@@ -525,6 +606,9 @@ Unlimited voice cloning for all languages 🎭"""
 **Anual:** $89.90/año (¡ahorra $18!)
 
 Clonación de voz ilimitada para todos los idiomas 🎭"""
+        "mode_text_to_voice": "🎤 Texto → Tu Voz",
+        "need_cloned_voice_for_text": "⚠️ **Se requiere clon de voz** Para usar esta función, primero clona tu voz.",
+        "select_voice_language": "🎤 **Selecciona idioma** Tu texto: \"{text}\""
     }
 }        
         
@@ -785,10 +869,13 @@ def get_main_menu(context):
         # Разделитель
         [InlineKeyboardButton("━━━━━━━━━━━━━━━━━━━━━━", callback_data="separator")],
         
-        # 🆕 КНОПКА ПРЕМИУМ С ЦЕНОЙ:
+        # Премиум кнопка
         [InlineKeyboardButton("💎 Upgrade to Premium - $8.99", callback_data="show_premium_plans")],
         
-        # Бесплатные функции (менее заметные)
+        # 🆕 НОВАЯ ПРЕМИУМ ФУНКЦИЯ:
+        [InlineKeyboardButton("🎤 Text → Your Voice (Premium)", callback_data="mode_text_to_voice")],
+        
+        # Бесплатные функции
         [InlineKeyboardButton("📝 Text Translation (Free)", callback_data="mode_text")],
         [
             InlineKeyboardButton("🎤 Voice→Text", callback_data="mode_voice"),
