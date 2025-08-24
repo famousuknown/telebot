@@ -1375,6 +1375,67 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
             reply_markup=get_main_menu(context),
         )
         return
+    if data.startswith("tts_lang_"):
+        target_lang = data[len("tts_lang_"):]
+        user_text = context.user_data.get("text_to_synthesize", "")
+        
+        if not user_text:
+            await query.answer("Error: No text to synthesize")
+            return
+            
+        # Показываем процесс
+        processing_msg = await query.edit_message_text(
+            get_text(context, "generating_cloned"),
+            parse_mode="Markdown"
+        )
+        
+        # Синтезируем голос
+        voice_id = context.user_data.get("cloned_voice_id")
+        
+        synth_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+        headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
+        
+        payload = {
+            "text": user_text,
+            "model_id": "eleven_multilingual_v2", 
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            }
+        }
+        
+        try:
+            r = requests.post(synth_url, headers=headers, json=payload)
+            
+            if r.status_code == 200:
+                tmp_out = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+                tmp_out.write(r.content)
+                tmp_out.flush()
+                tmp_out_path = tmp_out.name
+                tmp_out.close()
+
+                # Удаляем processing message
+                await processing_msg.delete()
+
+                # Отправляем результат
+                lang_display = get_lang_display_name(target_lang)
+                caption = f"🎤 Your voice: {lang_display}\n\n📝 Text: {user_text[:100]}..."
+                
+                with open(tmp_out_path, "rb") as af:
+                    await query.message.reply_voice(voice=af, caption=caption)
+                
+                os.remove(tmp_out_path)
+                
+                # Очищаем сохраненный текст
+                context.user_data["text_to_synthesize"] = None
+                
+            else:
+                await processing_msg.edit_text(f"❌ Error: {r.status_code}")
+                
+        except Exception as e:
+            await processing_msg.edit_text(f"❌ Error: {str(e)}")
+        
+        return
 
 # Handle text messages (when mode_text is active)
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
