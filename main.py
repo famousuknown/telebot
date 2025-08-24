@@ -1042,6 +1042,33 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
     if data == "separator":
         await query.answer(get_text(context, "separator_ignore"))
         return
+
+    if data == "mode_text_to_voice":
+        # Проверяем есть ли клонированный голос
+        if not context.user_data.get("cloned_voice_id"):
+            await query.edit_message_text(
+                text=get_text(context, "need_cloned_voice_for_text"),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎭 Clone Voice Now", callback_data="mode_voice_clone")],
+                    [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
+                ])
+            )
+            return
+        
+        # Активируем режим текст → голос
+        mode = data
+        context.user_data["mode"] = mode
+        
+        description = get_text(context, "desc_text_to_voice_mode")
+        instructions = get_text(context, "text_to_voice_ready")
+        
+        await query.edit_message_text(
+            text=f"{description}\n\n{instructions}",
+            parse_mode="Markdown",
+            reply_markup=get_back_button(context),
+        )
+        return         
     
     # Информация о клонировании
     if data == "clone_info":
@@ -1180,32 +1207,7 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 ])
             )
         return
-    if data == "mode_text_to_voice":
-        # Проверяем есть ли клонированный голос
-        if not context.user_data.get("cloned_voice_id"):
-            await query.edit_message_text(
-                text=get_text(context, "need_cloned_voice_for_text"),
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🎭 Clone Voice Now", callback_data="mode_voice_clone")],
-                    [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
-                ])
-            )
-            return
-        
-        # Активируем режим текст → голос
-        mode = data
-        context.user_data["mode"] = mode
-        
-        description = get_text(context, "desc_text_to_voice_mode")
-        instructions = get_text(context, "text_to_voice_ready")
-        
-        await query.edit_message_text(
-            text=f"{description}\n\n{instructions}",
-            parse_mode="Markdown",
-            reply_markup=get_back_button(context),
-        )
-        return        
+       
 
     # Back to menu  
     if data == "back_to_menu":
