@@ -1180,6 +1180,32 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 ])
             )
         return
+    if data == "mode_text_to_voice":
+        # Проверяем есть ли клонированный голос
+        if not context.user_data.get("cloned_voice_id"):
+            await query.edit_message_text(
+                text=get_text(context, "need_cloned_voice_for_text"),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎭 Clone Voice Now", callback_data="mode_voice_clone")],
+                    [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
+                ])
+            )
+            return
+        
+        # Активируем режим текст → голос
+        mode = data
+        context.user_data["mode"] = mode
+        
+        description = get_text(context, "desc_text_to_voice_mode")
+        instructions = get_text(context, "text_to_voice_ready")
+        
+        await query.edit_message_text(
+            text=f"{description}\n\n{instructions}",
+            parse_mode="Markdown",
+            reply_markup=get_back_button(context),
+        )
+        return        
 
     # Back to menu  
     if data == "back_to_menu":
@@ -1357,6 +1383,31 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=get_main_menu(context)
         )
+        return
+
+    elif mode == "mode_text_to_voice":
+        # Проверяем есть ли клонированный голос
+        if not context.user_data.get("cloned_voice_id"):
+            await update.message.reply_text(
+                get_text(context, "need_cloned_voice_for_text"),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎭 Clone Voice", callback_data="mode_voice_clone")]
+                ])
+            )
+            return
+        
+        user_text = update.message.text
+        
+        # Показываем выбор языка для озвучки
+        await update.message.reply_text(
+            get_text(context, "select_voice_language", text=user_text[:100]),
+            parse_mode="Markdown",
+            reply_markup=get_quick_lang_keyboard(context, "tts_lang_")
+        )
+        
+        # Сохраняем текст для озвучки
+        context.user_data["text_to_synthesize"] = user_text
         return
 
     src = context.user_data.get("source_lang") or "auto"
