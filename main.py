@@ -284,9 +284,9 @@ Are you from Russia? This helps us choose the best payment option for you.
 **Monthly:** $8.99/month
 **Yearly:** $89.90/year (save $18!)
 
-Unlimited voice cloning for all languages 🎭"""
+Unlimited voice cloning for all languages 🎭""",
 
-        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ ФУНКЦИИ ТЕКСТ → ГОЛОС:
+
         "mode_text_to_voice": "🎤 Text → Your Voice",
         "desc_text_to_voice_mode": """🎤 **Text → Your Voice**
 
@@ -529,9 +529,9 @@ Choose language for your cloned voice:"""
 **Месячный:** $8.99/месяц  
 **Годовой:** $89.90/год (экономия $18!)
 
-Безлимитное клонирование голоса на всех языках 🎭"""
+Безлимитное клонирование голоса на всех языках 🎭""",
 
-# В русский словарь "ru" добавь эти ключи (перед закрывающей скобкой):
+
 
         # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ ФУНКЦИИ ТЕКСТ → ГОЛОС:
         "mode_text_to_voice": "🎤 Текст → Ваш Голос",
@@ -605,7 +605,7 @@ Choose language for your cloned voice:"""
 **Mensual:** $8.99/mes
 **Anual:** $89.90/año (¡ahorra $18!)
 
-Clonación de voz ilimitada para todos los idiomas 🎭"""
+Clonación de voz ilimitada para todos los idiomas 🎭""",
         "mode_text_to_voice": "🎤 Texto → Tu Voz",
         "need_cloned_voice_for_text": "⚠️ **Se requiere clon de voz** Para usar esta función, primero clona tu voz.",
         "select_voice_language": "🎤 **Selecciona idioma** Tu texto: \"{text}\""
