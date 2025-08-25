@@ -512,7 +512,7 @@ Choose language for your cloned voice:"""
 
         "attempts_remaining": "🎭 **Попытки Клонирования:** {remaining}",
         
-        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ СИСТЕМЫ ОПЛАТЫ:
+        
         "premium_price": "💎 **Премиум - $8.99/месяц**",
         "russian_user_question": """🇷🇺 **Выбор способа оплаты**
 
@@ -533,7 +533,7 @@ Choose language for your cloned voice:"""
 
 
 
-        # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ ФУНКЦИИ ТЕКСТ → ГОЛОС:
+        
         "mode_text_to_voice": "🎤 Текст → Ваш Голос",
         "desc_text_to_voice_mode": """🎤 **Текст → Ваш Голос**
 
