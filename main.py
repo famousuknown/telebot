@@ -78,7 +78,7 @@ def get_remaining_attempts(context):
     used = context.user_data.get("voice_cloning_count", 0)
     remaining = FREE_VOICE_LIMIT - used
     return max(0, remaining)
-# Многоязычные тексты интерфейса с акцентом на клонирование
+
 # Многоязычные тексты интерфейса с акцентом на клонирование
 INTERFACE_TEXTS = {
     "en": {
@@ -286,7 +286,6 @@ Are you from Russia? This helps us choose the best payment option for you.
 
 Unlimited voice cloning for all languages 🎭""",
 
-
         "mode_text_to_voice": "🎤 Text → Your Voice",
         "desc_text_to_voice_mode": """🎤 **Text → Your Voice**
 
@@ -325,7 +324,6 @@ Your text: "{text}"
 
 Choose language for your cloned voice:"""
     },
-
     
     "ru": {
         "welcome_title": "🎭✨ **БОТ КЛОНИРОВАНИЯ ГОЛОСА** ✨🎭",
@@ -512,7 +510,6 @@ Choose language for your cloned voice:"""
 
         "attempts_remaining": "🎭 **Попытки Клонирования:** {remaining}",
         
-        
         "premium_price": "💎 **Премиум - $8.99/месяц**",
         "russian_user_question": """🇷🇺 **Выбор способа оплаты**
 
@@ -531,9 +528,6 @@ Choose language for your cloned voice:"""
 
 Безлимитное клонирование голоса на всех языках 🎭""",
 
-
-
-        
         "mode_text_to_voice": "🎤 Текст → Ваш Голос",
         "desc_text_to_voice_mode": """🎤 **Текст → Ваш Голос**
 
@@ -589,8 +583,8 @@ Choose language for your cloned voice:"""
         "attempts_remaining": "🎭 **Intentos:** {remaining}",
         
         # 🆕 НОВЫЕ КЛЮЧИ ДЛЯ СИСТЕМЫ ОПЛАТЫ:
-            "premium_price": "💎 **Premium - $8.99/mes**",
-            "russian_user_question": """🇷🇺 **Selección de método de pago**
+        "premium_price": "💎 **Premium - $8.99/mes**",
+        "russian_user_question": """🇷🇺 **Selección de método de pago**
 
 ¿Eres de Rusia? Esto nos ayuda a elegir la mejor opción de pago.
 
@@ -610,7 +604,7 @@ Clonación de voz ilimitada para todos los idiomas 🎭""",
         "need_cloned_voice_for_text": "⚠️ **Se requiere clon de voz** Para usar esta función, primero clona tu voz.",
         "select_voice_language": "🎤 **Selecciona idioma** Tu texto: \"{text}\""
     }
-}        
+}
         
 
 def determine_payment_method(user_lang):
