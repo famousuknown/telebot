@@ -1318,6 +1318,118 @@ async def handle_lang_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await safe_send_menu(query, context, is_query=True)
         return
 
+        # 🆕 ОБРАБОТКА ВЫБОРА ЯЗЫКА ДЛЯ СИНТЕЗА ТЕКСТА
+    if data.startswith("tts_lang_"):
+        target_lang = data[len("tts_lang_"):]
+        user_text = context.user_data.get("text_to_synthesize", "")
+        
+        if not user_text:
+            await query.answer("❌ Error: No text to synthesize")
+            return
+        
+        # Проверяем есть ли клонированный голос
+        voice_id = context.user_data.get("cloned_voice_id")
+        if not voice_id:
+            await query.edit_message_text(
+                text=get_text(context, "need_cloned_voice_for_text"),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎭 Clone Voice", callback_data="mode_voice_clone")]
+                ])
+            )
+            return
+            
+        # Показываем процесс
+        processing_msg = await query.edit_message_text(
+            get_text(context, "generating_cloned"),
+            parse_mode="Markdown"
+        )
+        
+        try:
+            # Синтезируем голос через ElevenLabs
+            synth_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+            headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
+            
+            payload = {
+                "text": user_text,
+                "model_id": "eleven_multilingual_v2", 
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.75
+                }
+            }
+            
+            # Специальные настройки для китайского
+            if target_lang in ["zh-CN", "zh-TW"]:
+                payload["voice_settings"]["style"] = 0.2
+                payload["voice_settings"]["use_speaker_boost"] = True
+            
+            print(f"🎤 Synthesizing text with voice {voice_id} in {target_lang}")
+            print(f"📝 Text: {user_text[:100]}...")
+            
+            r = requests.post(synth_url, headers=headers, json=payload, timeout=30)
+            
+            if r.status_code == 200:
+                # Сохраняем аудио
+                with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_out:
+                    tmp_out.write(r.content)
+                    tmp_out.flush()
+                    tmp_out_path = tmp_out.name
+
+                # Удаляем processing message
+                await processing_msg.delete()
+
+                # Отправляем результат
+                lang_display = get_lang_display_name(target_lang)
+                
+                # Обрезаем текст для caption если слишком длинный
+                short_text = user_text[:150] + "..." if len(user_text) > 150 else user_text
+                caption = f"🎤 **Your voice:** {lang_display}\n\n📝 **Text:** {short_text}"
+                
+                with open(tmp_out_path, "rb") as af:
+                    await query.message.reply_voice(
+                        voice=af, 
+                        caption=caption,
+                        parse_mode="Markdown",
+                        reply_markup=get_back_button(context)
+                    )
+                
+                # Если текст очень длинный, отправляем его отдельно
+                if len(user_text) > 300:
+                    await query.message.reply_text(
+                        f"📝 **Full text:**\n\n{user_text}",
+                        parse_mode="Markdown"
+                    )
+                
+                # Очищаем сохраненный текст
+                context.user_data["text_to_synthesize"] = None
+                
+                os.remove(tmp_out_path)
+                
+            else:
+                print(f"❌ ElevenLabs synthesis error: {r.status_code} - {r.text}")
+                await processing_msg.edit_text(
+                    f"❌ **Voice synthesis failed**\n\nError: {r.status_code}\n\nTry again or contact support.",
+                    parse_mode="Markdown",
+                    reply_markup=get_back_button(context)
+                )
+                
+        except requests.exceptions.Timeout:
+            await processing_msg.edit_text(
+                "⏱️ **Timeout error**\n\nSynthesis took too long. Try with shorter text.",
+                parse_mode="Markdown",
+                reply_markup=get_back_button(context)
+            )
+        except Exception as e:
+            print(f"Exception in TTS synthesis: {e}")
+            await processing_msg.edit_text(
+                f"❌ **Error occurred**\n\n{str(e)[:100]}...",
+                parse_mode="Markdown",
+                reply_markup=get_back_button(context)
+            )
+        
+        return        
+
     # Показать все языки
     if data in ["src_more", "tgt_more"]:
         prefix = data.replace("_more", "_")
@@ -2021,6 +2133,7 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(handle_clone_setup, pattern="^(clone_src_|clone_tgt_|clone_.*_more)"))
     app.add_handler(CallbackQueryHandler(handle_interface_lang, pattern="^(interface_|back_to_settings)"))
     app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|back_to_menu|skip_target)"))
+    app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|.*_more|skip_target|tts_lang_)"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
