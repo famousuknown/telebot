@@ -17,7 +17,7 @@ from telegram.ext import (
     filters,
 )
 from dotenv import load_dotenv
-
+print(os.environ)  # или хотя бы os.environ.keys()
 # Load env vars
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
