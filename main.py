@@ -1597,6 +1597,48 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         
         return
+    # Обрабатываем обычный режим перевода текста
+    elif mode == "mode_text":
+        src = context.user_data.get("source_lang") or "auto"
+        tgt = context.user_data.get("target_lang") or DEFAULT_TARGET
+
+        original_text = update.message.text
+
+        # Показываем что происходит
+        processing_msg = await update.message.reply_text(get_text(context, "translating"))
+
+        try:
+            translated = GoogleTranslator(
+                source=convert_lang_code_for_translation(src),
+                target=convert_lang_code_for_translation(tgt)
+            ).translate(original_text)
+           
+            src_display = get_lang_display_name(src) if src != "auto" else get_text(context, "auto_detect")
+            tgt_display = get_lang_display_name(tgt)
+           
+            result_text = f"""{get_text(context, "translation_complete")}
+
+{get_text(context, "from_label", src_lang=src_display)}
+{original_text}
+
+{get_text(context, "to_label", tgt_lang=tgt_display)}
+{translated}"""
+
+            await processing_msg.edit_text(result_text, parse_mode="Markdown", reply_markup=get_back_button(context))
+           
+        except Exception as e:
+            await processing_msg.edit_text(get_text(context, "translation_error", error=str(e)), reply_markup=get_back_button(context))
+       
+        return
+   
+    # Если ни один режим не активен
+    else:
+        await update.message.reply_text(
+            get_text(context, "text_mode_not_active"),
+            parse_mode="Markdown",
+            reply_markup=get_main_menu(context)
+        )
+        return
 
 # Helper: clone user's voice using ElevenLabs
 async def clone_user_voice(user_id: int, audio_file_path: str, source_language: str = None):
