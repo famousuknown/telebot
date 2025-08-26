@@ -28,7 +28,7 @@ DEFAULT_TARGET = os.getenv("TARGET_LANG", "en")
 
 recognizer = sr.Recognizer()
 # Реферальная система и лимиты
-FREE_VOICE_LIMIT = 3  # Лимит для обычных пользователей
+FREE_VOICE_LIMIT = 1  # Лимит для обычных пользователей
 PREMIUM_REFERRAL_CODES = {
     "just_me": "Sam",
     "blogger_alex": "Alex Tech",
@@ -1448,7 +1448,17 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ])
             )
             return
-       
+        user_id = update.effective_user.id
+        can_use, limit_msg = check_voice_limit(context, user_id)
+        if not can_use:
+            await update.message.reply_text(
+                limit_msg,
+                parse_mode="Markdown",
+                reply_markup=get_back_button(context)
+            )
+            return
+     
+        increment_voice_count(context)
         user_text = update.message.text
         voice_id = context.user_data.get("cloned_voice_id")
        
