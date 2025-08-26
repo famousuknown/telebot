@@ -39,19 +39,40 @@ PREMIUM_REFERRAL_CODES = {
 }
 
 # Функция для проверки лимитов
-def check_voice_limit(context, user_id):
-    """Проверяет может ли пользователь использовать клонирование голоса"""
-    # Проверяем премиум статус
+def check_voice_cloning_limit(context, user_id):
+    """Проверяет может ли пользователь клонировать голос"""
     is_premium = context.user_data.get("is_premium", False)
     if is_premium:
         return True, None
     
-    # Проверяем лимит для обычных пользователей
-    voice_count = context.user_data.get("voice_cloning_count", 0)
-    if voice_count >= FREE_VOICE_LIMIT:
-        return False, f"""⚠️ **Free limit reached!**
+    cloning_count = context.user_data.get("voice_cloning_count", 0)
+    if cloning_count >= 1:
+        return False, f"""⚠️ **Voice cloning limit reached!**
 
-🎭 You've used all {FREE_VOICE_LIMIT} free voice cloning attempts.
+🎭 You've used your 1 free voice cloning attempt.
+
+💫 **Get unlimited access:**
+• Contact us for premium access
+• Or ask your favorite tech blogger for a special link!
+
+📱 **Free features still available:**
+• Text translation
+• Voice recognition
+• Basic voice-to-voice"""
+    
+    return True, None
+
+def check_text_to_voice_limit(context, user_id):
+    """Проверяет может ли пользователь использовать Text → Voice"""
+    is_premium = context.user_data.get("is_premium", False)
+    if is_premium:
+        return True, None
+    
+    text_to_voice_count = context.user_data.get("text_to_voice_count", 0)
+    if text_to_voice_count >= 1:
+        return False, f"""⚠️ **Text → Voice limit reached!**
+
+🎤 You've used your 1 free text-to-voice attempt.
 
 💫 **Get unlimited access:**
 • Contact us for premium access
@@ -63,6 +84,31 @@ def check_voice_limit(context, user_id):
 • Basic voice-to-voice"""
     
     return True, None
+
+def increment_voice_cloning_count(context):
+    """Увеличивает счетчик клонирования голоса"""
+    if not context.user_data.get("is_premium", False):
+        current = context.user_data.get("voice_cloning_count", 0)
+        context.user_data["voice_cloning_count"] = current + 1
+
+def increment_text_to_voice_count(context):
+    """Увеличивает счетчик Text → Voice"""
+    if not context.user_data.get("is_premium", False):
+        current = context.user_data.get("text_to_voice_count", 0)
+        context.user_data["text_to_voice_count"] = current + 1
+
+def get_remaining_attempts_detailed(context):
+    """Возвращает детальную информацию об оставшихся попытках"""
+    if context.user_data.get("is_premium", False):
+        return "All unlimited ✨"
+    
+    cloning_used = context.user_data.get("voice_cloning_count", 0)
+    text_to_voice_used = context.user_data.get("text_to_voice_count", 0)
+    
+    cloning_remaining = max(0, 1 - cloning_used)
+    text_to_voice_remaining = max(0, 1 - text_to_voice_used)
+    
+    return f"Cloning: {cloning_remaining}/1, Text→Voice: {text_to_voice_remaining}/1"
 
 def increment_voice_count(context):
     """Увеличивает счетчик использования клонирования"""
@@ -914,14 +960,14 @@ def get_status_text(context):
         "mode_voice": get_text(context, "mode_voice"),
         "mode_voice_tts": get_text(context, "mode_voice_tts"),
         "mode_voice_clone": get_text(context, "mode_voice_clone"),
+        "mode_text_to_voice": get_text(context, "mode_text_to_voice"),
     }
     mode_display = mode_names.get(mode, get_text(context, "mode_not_selected"))
     
-    # Информация о лимитах
-    remaining = get_remaining_attempts(context)
-    attempts_info = get_text(context, "attempts_remaining", remaining=remaining)
+    # 🆕 ИСПРАВЛЕНО: Детальная информация о лимитах
+    attempts_info = get_remaining_attempts_detailed(context)
     
-    # Региональная информация (пока без цен - добавим в следующем этапе)
+    # Региональная информация
     region_info = f"🌍 **Region:** {user_region} ({user_country}) {currency_symbol}"
 
     return f"""{get_text(context, "status_title")}
@@ -930,7 +976,7 @@ def get_status_text(context):
 {get_text(context, "status_from")} {src_display}
 {get_text(context, "status_to")} {tgt_display}
 {get_text(context, "status_cloned")} {cloned}
-{attempts_info}
+🎭 **Premium attempts:** {attempts_info}
 {region_info}
 
 {get_text(context, "status_footer")}"""
@@ -1448,8 +1494,10 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ])
             )
             return
+        # Используем функцию проверки Text → Voice
         user_id = update.effective_user.id
-        can_use, limit_msg = check_voice_limit(context, user_id)
+        can_use, limit_msg = check_text_to_voice_limit(context, user_id)
+        
         if not can_use:
             await update.message.reply_text(
                 limit_msg,
@@ -1457,8 +1505,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=get_back_button(context)
             )
             return
-     
-        increment_voice_count(context)
+
+        # Увеличиваем счетчик Text → Voice
+        increment_text_to_voice_count(context)
         user_text = update.message.text
         voice_id = context.user_data.get("cloned_voice_id")
        
@@ -1815,9 +1864,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
             
-            # 🆕 ИСПРАВЛЕНО: Проверяем лимиты перед КАЖДЫМ использованием
+            # 🆕 ИСПРАВЛЕНО: Используем новую функцию проверки клонирования
             user_id = update.effective_user.id
-            can_use, limit_msg = check_voice_limit(context, user_id)
+            can_use, limit_msg = check_voice_cloning_limit(context, user_id)
             
             if not can_use:
                 await processing_msg.edit_text(
@@ -1826,9 +1875,6 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=get_back_button(context)
                 )
                 return
-            
-            # 🆕 ИСПРАВЛЕНО: Увеличиваем счетчик перед обработкой (не только при клонировании)
-            increment_voice_count(context)
                 
             existing = context.user_data.get("cloned_voice_id")
             
@@ -1858,8 +1904,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if os.path.exists(mp3_path):
                     os.remove(mp3_path)
 
+
             if voice_id:
-                context.user_data["cloned_voice_id"] = voice_id
+                increment_voice_cloning_count(context)
                 
                 # Обновляем или удаляем processing message
                 try:
