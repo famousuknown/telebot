@@ -946,7 +946,6 @@ def get_status_text(context):
     tgt = context.user_data.get("target_lang", DEFAULT_TARGET)
     mode = context.user_data.get("mode")
     cloned = get_text(context, "yes") if context.user_data.get("cloned_voice_id") else get_text(context, "no")
-    
      # Отладка
     voice_id = context.user_data.get("cloned_voice_id")
     print(f"🔍 Debug - Voice ID: {voice_id}")
@@ -1914,6 +1913,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
             if voice_id:
+                increment_voice_cloning_count(context)
                 context.user_data["cloned_voice_id"] = voice_id
                 
                 # Обновляем или удаляем processing message
