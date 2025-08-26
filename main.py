@@ -947,6 +947,14 @@ def get_status_text(context):
     mode = context.user_data.get("mode")
     cloned = get_text(context, "yes") if context.user_data.get("cloned_voice_id") else get_text(context, "no")
     
+     # Отладка
+    voice_id = context.user_data.get("cloned_voice_id")
+    print(f"🔍 Debug - Voice ID: {voice_id}")
+    print(f"🔍 Debug - User data: {context.user_data}")
+    
+    cloned = get_text(context, "yes") if voice_id else get_text(context, "no")
+
+
     # Региональная информация
     user_region = context.user_data.get("user_region", "GLOBAL")
     user_country = context.user_data.get("user_country", "US")
@@ -1906,7 +1914,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
             if voice_id:
-                increment_voice_cloning_count(context)
+                context.user_data["cloned_voice_id"] = voice_id
                 
                 # Обновляем или удаляем processing message
                 try:
