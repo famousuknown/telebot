@@ -902,30 +902,28 @@ def get_interface_lang_keyboard():
 # Главное меню с акцентом на клонирование голоса
 def get_main_menu(context):
     keyboard = [
-        # ✨ ПРЕМИУМ ФУНКЦИЯ - КЛОНИРОВАНИЕ ✨
-        [InlineKeyboardButton("✨🎭 AI VOICE CLONE 🎭✨", callback_data="mode_voice_clone")],
-        [InlineKeyboardButton("⭐ PREMIUM FEATURE ⭐", callback_data="clone_info")],
-        
-        # Разделитель
-        [InlineKeyboardButton("━━━━━━━━━━━━━━━━━━━━━━", callback_data="separator")],
-        
-        # Премиум кнопка
-        [InlineKeyboardButton("💎 Upgrade to Premium - $8.99", callback_data="show_premium_plans")],
-        
-        # 🆕 НОВАЯ ПРЕМИУМ ФУНКЦИЯ:
-        [InlineKeyboardButton("🎤 Text → Your Voice (Premium)", callback_data="mode_text_to_voice")],
-        
-        # Бесплатные функции
-        [InlineKeyboardButton("📝 Text Translation (Free)", callback_data="mode_text")],
+        # ПРЕМИУМ СЕКЦИЯ - четко выделена
+        [InlineKeyboardButton("💎 PREMIUM - $8.99/month", callback_data="show_premium_plans")],
         [
-            InlineKeyboardButton("🎤 Voice→Text", callback_data="mode_voice"),
-            InlineKeyboardButton("🔊 Voice→Voice", callback_data="mode_voice_tts")
+            InlineKeyboardButton("🎭 Voice Clone", callback_data="mode_voice_clone"),
+            InlineKeyboardButton("🎤 Text → Voice", callback_data="mode_text_to_voice")
+        ],
+        [InlineKeyboardButton("✨ Premium Info", callback_data="clone_info")],
+        
+        # Элегантный разделитель
+        [InlineKeyboardButton("・ ・ ・ ・ ・ ・ ・ ・ ・ ・ ・ ・", callback_data="separator")],
+        
+        # БЕСПЛАТНЫЕ ФУНКЦИИ - компактно и скромно
+        [InlineKeyboardButton("📝 Text Translation", callback_data="mode_text")],
+        [
+            InlineKeyboardButton("🎤 Voice → Text", callback_data="mode_voice"),
+            InlineKeyboardButton("🔊 Voice → Voice", callback_data="mode_voice_tts")
         ],
         
-        # Настройки внизу
+        # ВСПОМОГАТЕЛЬНЫЕ - минималистично
         [
             InlineKeyboardButton("⚙️ Settings", callback_data="settings_menu"),
-            InlineKeyboardButton("ℹ️ Help", callback_data="help"),
+            InlineKeyboardButton("💬 Help", callback_data="help")
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
