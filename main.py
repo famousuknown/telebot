@@ -903,27 +903,27 @@ def get_interface_lang_keyboard():
 def get_main_menu(context):
     keyboard = [
         # ПРЕМИУМ СЕКЦИЯ - четко выделена
-        [InlineKeyboardButton("💎 PREMIUM - $8.99/month", callback_data="show_premium_plans")],
+        [InlineKeyboardButton("Remove All Limits - $8.99", callback_data="show_premium_plans")],
         [
-            InlineKeyboardButton("🎭 Voice Clone", callback_data="mode_voice_clone"),
-            InlineKeyboardButton("🎤 Text → Voice", callback_data="mode_text_to_voice")
+            InlineKeyboardButton("Your Voice in Any Language", callback_data="mode_voice_clone"),
+            InlineKeyboardButton("Text → Your Voice", callback_data="mode_text_to_voice")
         ],
-        [InlineKeyboardButton("✨ Premium Info", callback_data="clone_info")],
+        [InlineKeyboardButton("Premium Info", callback_data="clone_info")],
         
         # Элегантный разделитель
         [InlineKeyboardButton("・ ・ ・ ・ ・ ・ ・ ・ ・ ・ ・ ・", callback_data="separator")],
         
         # БЕСПЛАТНЫЕ ФУНКЦИИ - компактно и скромно
-        [InlineKeyboardButton("📝 Text Translation", callback_data="mode_text")],
+        [InlineKeyboardButton("Text Translation", callback_data="mode_text")],
         [
-            InlineKeyboardButton("🎤 Voice → Text", callback_data="mode_voice"),
-            InlineKeyboardButton("🔊 Voice → Voice", callback_data="mode_voice_tts")
+            InlineKeyboardButton("Voice → Text", callback_data="mode_voice"),
+            InlineKeyboardButton("Voice → Voice", callback_data="mode_voice_tts")
         ],
         
         # ВСПОМОГАТЕЛЬНЫЕ - минималистично
         [
-            InlineKeyboardButton("⚙️ Settings", callback_data="settings_menu"),
-            InlineKeyboardButton("💬 Help", callback_data="help")
+            InlineKeyboardButton("Settings", callback_data="settings_menu"),
+            InlineKeyboardButton("Help", callback_data="help")
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
