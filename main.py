@@ -17,12 +17,19 @@ from telegram.ext import (
     filters,
 )
 from dotenv import load_dotenv
+from fastapi import FastAPI, Request
+import uvicorn
+import threading
+import os
 print(os.environ)  # или хотя бы os.environ.keys()
 # Load env vars
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY")
 ELEVENLABS_VOICE_CLONE_URL = "https://api.elevenlabs.io/v1/voices/add"
+# читаем product ID из переменной окружения
+GUMROAD_PRODUCT_ID = os.getenv("GUMROAD_PRODUCT_ID")
+PREMIUM_USERS = {}  # временное хранилище Premium (можно заменить на БД)
 
 DEFAULT_TARGET = os.getenv("TARGET_LANG", "en")
 
@@ -37,8 +44,38 @@ PREMIUM_REFERRAL_CODES = {
     "vip_access": "VIP User",
     # Добавляй сюда новые коды для блогеров
 }
+app_fastapi = FastAPI()
 
-# Функция для проверки лимитов
+@app_fastapi.post("/gumroad")
+async def gumroad_webhook(request: Request):
+    form = await request.form()
+    data = dict(form)
+
+    print("🔥 Gumroad webhook:", data)
+
+    tg_id = None
+    if "custom_fields[user_id]" in data:
+        try:
+            tg_id = int(data["custom_fields[user_id]"])
+        except:
+            pass
+
+    product_id = data.get("product_id")
+
+    # проверяем товар
+    if product_id != GUMROAD_PRODUCT_ID:
+        print("⚠️ Wrong product ID:", product_id)
+        return {"status": "wrong_product"}
+
+    if tg_id:
+        PREMIUM_USERS[tg_id] = True
+        print("✨ Premium activated for user:", tg_id)
+    else:
+        print("❌ No telegram ID found in webhook")
+
+    return {"status": "ok"}
+
+#1 Функция для проверки лимитов
 def check_voice_cloning_limit(context, user_id):
     """Проверяет может ли пользователь клонировать голос"""
     is_premium = context.user_data.get("is_premium", False)
@@ -50,7 +87,6 @@ def check_voice_cloning_limit(context, user_id):
         return False, f"""⚠️ **Voice cloning limit reached!**
 
 🎭 You've used your 1 free voice cloning attempt.
-
 💫 **Get unlimited access:**
 • Contact us for premium access
 • Or ask your favorite tech blogger for a special link!
@@ -667,25 +703,22 @@ def get_payment_region_keyboard(context):
     ]
     return InlineKeyboardMarkup(keyboard)
 
-def get_premium_plans_keyboard(context):
-    """Клавиатура с планами Premium"""
-    payment_method = context.user_data.get("payment_method", "lemonsqueezy")
-    
-    if payment_method == "yookassa":
-        # Российские цены в рублях
-        monthly_text = "💳 Месячный - 699₽"
-        yearly_text = "🌟 Годовой - 6990₽"
-    else:
-        # Международные цены в долларах  
-        monthly_text = "💳 Monthly - $8.99"
-        yearly_text = "🌟 Yearly - $89.90"
-    
+def get_premium_plans_keyboard(update, context):
+    """Кнопка оплаты через Gumroad"""
+
+    user_id = update.effective_user.id
+    product_id = os.getenv("GUMROAD_PRODUCT_ID")
+
+    # ссылка на покупку с передачей telegram_id
+    gumroad_url = f"https://gumroad.com/l/{product_id}?custom_fields[user_id]={user_id}"
+
     keyboard = [
-        [InlineKeyboardButton(monthly_text, callback_data="buy_premium_monthly")],
-        [InlineKeyboardButton(yearly_text, callback_data="buy_premium_yearly")],
+        [InlineKeyboardButton("💳 Buy Premium — $4.99", url=gumroad_url)],
         [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
     ]
+
     return InlineKeyboardMarkup(keyboard)
+
 
 # Функция получения локализованного текста
 def get_text(context, key, **kwargs):
@@ -1020,6 +1053,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["user_country"] = region_data['country'] 
     context.user_data["user_currency"] = region_data['currency']
     context.user_data["currency_symbol"] = region_data['symbol']
+
+    # Восстанавливаем премиум, если вебхук уже сработал
+    if PREMIUM_USERS.get(user_id):
+        context.user_data["is_premium"] = True
     
     # Определяем язык интерфейса пользователя
     user_lang = update.effective_user.language_code or "en"
@@ -1686,7 +1723,7 @@ async def handle_premium_plans(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     data = query.data
-        # 🆕 ПОЛНЫЙ ОБРАБОТЧИК ПРЕМИУМ:
+    # 🆕 ПОЛНЫЙ ОБРАБОТЧИК ПРЕМИУМ:
     if data == "show_premium_plans":
         user_lang = context.user_data.get("interface_lang", "en")
         
@@ -1707,7 +1744,7 @@ async def handle_premium_plans(update: Update, context: ContextTypes.DEFAULT_TYP
             await query.edit_message_text(
                 text=get_text(context, "choose_premium_plan"),
                 parse_mode="Markdown", 
-                reply_markup=get_premium_plans_keyboard(context)
+                reply_markup=get_premium_plans_keyboard(update, context)
             )
         return
     
@@ -2125,25 +2162,7 @@ def get_payment_region_keyboard(context):
     ]
     return InlineKeyboardMarkup(keyboard)
 
-def get_premium_plans_keyboard(context):
-    """Клавиатура с планами Premium"""
-    payment_method = context.user_data.get("payment_method", "lemonsqueezy")
-    
-    if payment_method == "yookassa":
-        # Российские цены в рублях (примерно $8.99 * 90 = 809₽)
-        monthly_text = "💳 Месячный - 809₽"
-        yearly_text = "🌟 Годовой - 8090₽ (экономия 1618₽!)"
-    else:
-        # Международные цены в долларах  
-        monthly_text = "💳 Monthly - $8.99"
-        yearly_text = "🌟 Yearly - $89.90 (save $18!)"
-    
-    keyboard = [
-        [InlineKeyboardButton(monthly_text, callback_data="buy_premium_monthly")],
-        [InlineKeyboardButton(yearly_text, callback_data="buy_premium_yearly")],
-        [InlineKeyboardButton(get_text(context, "btn_back"), callback_data="back_to_menu")]
-    ]
-    return InlineKeyboardMarkup(keyboard)
+
 
 # Entry point
 if __name__ == "__main__":
@@ -2159,4 +2178,13 @@ if __name__ == "__main__":
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
     print("🤖 Bot started...")
+    def run_fastapi():
+        port = int(os.environ.get("PORT", 8000))
+        uvicorn.run(app_fastapi, host="0.0.0.0", port=port, log_level="info")
+
+    # Запускаем FastAPI в отдельном потоке
+    fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
+    fastapi_thread.start()
+
+    print("🚀 FastAPI Gumroad Webhook server started")
     app.run_polling()

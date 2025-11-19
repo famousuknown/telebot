@@ -6,3 +6,5 @@ SpeechRecognition
 pydub
 pytz
 python-dotenv
+fastapi
+uvicorn[standard]
