@@ -2203,7 +2203,7 @@ if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(init_telegram())
 
     # запускаем Telegram Application как background task
-    asyncio.get_event_loop().create_task(app.run())
+
 
     # запускаем FastAPI как основной сервер
     uvicorn.run(app_fastapi, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
