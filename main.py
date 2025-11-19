@@ -2194,12 +2194,13 @@ if __name__ == "__main__":
     import asyncio
 
     WEBHOOK_URL = "https://telebot-production-8976.up.railway.app/telegram"
-
     async def init_telegram():
         await app.bot.set_webhook(WEBHOOK_URL)
         await app.initialize()
         await app.start()
         print("🌐 Telegram application initialized")
+        await app.run_until_disconnected()
+
 
     asyncio.get_event_loop().run_until_complete(init_telegram())
 
