@@ -2222,5 +2222,6 @@ if __name__ == "__main__":
         return {"status": "ok"}
 
     # запускаем ТОЛЬКО FastAPI
-    uvicorn.run(app_fastapi, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+    uvicorn.run(app_fastapi, host="0.0.0.0", port=8000)
+
 
