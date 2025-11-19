@@ -78,7 +78,7 @@ async def gumroad_webhook(request: Request):
 async def telegram_webhook(request: Request):
     data = await request.json()
     update = Update.de_json(data, app.bot)
-    await app.update_queue.put(update)
+    await app.process_update(update)
     return {"status": "ok"}
 
 
