@@ -77,7 +77,8 @@ async def gumroad_webhook(request: Request):
 @app_fastapi.post("/telegram")
 async def telegram_webhook(request: Request):
     data = await request.json()
-    await app.bot.process_update(Update.de_json(data, app.bot))
+    update = Update.de_json(data, app.bot)
+    await app.update_queue.put(update)
     return {"status": "ok"}
 
 
@@ -2188,6 +2189,18 @@ if __name__ == "__main__":
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
     print("🤖 Bot started...")
+    import asyncio
+
+WEBHOOK_URL = "https://telebot-production-8976.up.railway.app/telegram"
+
+async def init_telegram():
+    await app.bot.set_webhook(WEBHOOK_URL)
+    await app.initialize()
+    await app.start()
+    print("🌐 Telegram application initialized")
+
+asyncio.get_event_loop().run_until_complete(init_telegram())
+
 
     # === УСТАНАВЛИВАЕМ TELEGRAM WEBHOOK ===
     import asyncio
