@@ -74,6 +74,12 @@ async def gumroad_webhook(request: Request):
         print("❌ No telegram ID found in webhook")
 
     return {"status": "ok"}
+@app_fastapi.post("/telegram")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    await app.bot.process_update(Update.de_json(data, app.bot))
+    return {"status": "ok"}
+
 
 #1 Функция для проверки лимитов
 def check_voice_cloning_limit(context, user_id):
@@ -2167,7 +2173,11 @@ def get_payment_region_keyboard(context):
 # Entry point
 if __name__ == "__main__":
     print(f"TELEGRAM_TOKEN={repr(TELEGRAM_TOKEN)}")
+    
+    # создаём Telegram приложение
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    
+    # регистрируем handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_text_to_voice|mode_voice_clone|mode_text|mode_voice|mode_voice_tts|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface|clone_info|separator|show_premium_plans|payment_region_|buy_premium_)"))
     app.add_handler(CallbackQueryHandler(handle_clone_setup, pattern="^(clone_src_|clone_tgt_|clone_.*_more)"))
@@ -2178,13 +2188,17 @@ if __name__ == "__main__":
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
     print("🤖 Bot started...")
-    def run_fastapi():
-        port = int(os.environ.get("PORT", 8000))
-        uvicorn.run(app_fastapi, host="0.0.0.0", port=port, log_level="info")
 
-    # Запускаем FastAPI в отдельном потоке
-    fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
-    fastapi_thread.start()
+    # === УСТАНАВЛИВАЕМ TELEGRAM WEBHOOK ===
+    import asyncio
 
-    print("🚀 FastAPI Gumroad Webhook server started")
-    app.run_polling()
+    WEBHOOK_URL = "https://telebot-production-8976.up.railway.app/telegram"
+
+    async def init_webhook():
+        await app.bot.set_webhook(WEBHOOK_URL)
+        print("🌐 Telegram webhook установлен:", WEBHOOK_URL)
+
+    asyncio.get_event_loop().run_until_complete(init_webhook())
+
+    # === ЗАПУСКАЕМ FASTAPI как основной сервер ===
+    uvicorn.run(app_fastapi, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
