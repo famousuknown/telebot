@@ -2174,10 +2174,10 @@ def get_payment_region_keyboard(context):
 # Entry point
 if __name__ == "__main__":
     print(f"TELEGRAM_TOKEN={repr(TELEGRAM_TOKEN)}")
-    
+
     # создаём Telegram приложение
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    
+
     # регистрируем handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_text_to_voice|mode_voice_clone|mode_text|mode_voice|mode_voice_tts|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface|clone_info|separator|show_premium_plans|payment_region_|buy_premium_)"))
@@ -2190,39 +2190,24 @@ if __name__ == "__main__":
 
     print("🤖 Bot started...")
 
-    # --- Telegram Webhook Initialization ---
     import asyncio
-
     WEBHOOK_URL = "https://telebot-production-8976.up.railway.app/telegram"
-    async def init_telegram():
+
+    @app_fastapi.on_event("startup")
+    async def startup():
         await app.initialize()
         await app.bot.set_webhook(WEBHOOK_URL)
         await app.start()
-        print("🌐 Telegram application initialized")
+        print("🌐 Telegram webhook initialized")
 
-    asyncio.get_event_loop().run_until_complete(init_telegram())
+    # Webhook endpoint (очень важно!)
+    @app_fastapi.post("/telegram")
+    async def telegram_webhook(request: Request):
+        data = await request.json()
+        update = Update.de_json(data, app.bot)
+        await app.process_update(update)
+        return {"status": "ok"}
 
-    # запускаем Telegram Application как background task
-
-
-    # запускаем FastAPI как основной сервер
+    # запускаем ТОЛЬКО FastAPI
     uvicorn.run(app_fastapi, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
 
-
-
-
-
-
-    # === УСТАНАВЛИВАЕМ TELEGRAM WEBHOOK ===
-    import asyncio
-
-    WEBHOOK_URL = "https://telebot-production-8976.up.railway.app/telegram"
-
-    async def init_webhook():
-        await app.bot.set_webhook(WEBHOOK_URL)
-        print("🌐 Telegram webhook установлен:", WEBHOOK_URL)
-
-    asyncio.get_event_loop().run_until_complete(init_webhook())
-
-    # === ЗАПУСКАЕМ FASTAPI как основной сервер ===
-    uvicorn.run(app_fastapi, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
