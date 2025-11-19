@@ -76,10 +76,23 @@ async def gumroad_webhook(request: Request):
     return {"status": "ok"}
 @app_fastapi.post("/telegram")
 async def telegram_webhook(request: Request):
-    data = await request.json()
-    update = Update.de_json(data, app.bot)
-    await app.process_update(update)
-    return {"status": "ok"}
+    try:
+        print("🔔 Incoming Telegram webhook")
+        data = await request.json()
+        print("📩 Raw data:", data)
+
+        update = Update.de_json(data, app.bot)
+        print("🛠 Update parsed:", update)
+
+        await app.process_update(update)
+        print("✔ Update processed")
+
+        return {"status": "ok"}
+
+    except Exception as e:
+        print("❌ ERROR in telegram_webhook:", e)
+        return {"status": "error"}
+
 
 
 #1 Функция для проверки лимитов
