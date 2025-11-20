@@ -16,7 +16,6 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 import uvicorn
 import threading
@@ -62,7 +61,6 @@ async def is_premium(user_id: int) -> bool:
 
 print(os.environ)  # или хотя бы os.environ.keys()
 # Load env vars
-load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY")
 ELEVENLABS_VOICE_CLONE_URL = "https://api.elevenlabs.io/v1/voices/add"
