@@ -81,6 +81,22 @@ PREMIUM_REFERRAL_CODES = {
     "vip_access": "VIP User",
     # Добавляй сюда новые коды для блогеров
 }
+@dp.message_handler(commands=["premium"])
+async def buy_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    gumroad_url = f"https://linguavoiceai.gumroad.com/l/ai_mike?user_id={user_id}"
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("💎 Get Premium Access", url=gumroad_url)]
+    ])
+
+    await update.message.reply_text(
+        "💎 Unlock unlimited features!\n\n"
+        "Click the button below to purchase Premium:",
+        reply_markup=keyboard
+    )
+
 app_fastapi = FastAPI()
 @app_fastapi.post("/gumroad")
 async def gumroad_webhook(request: Request):
@@ -106,7 +122,7 @@ async def gumroad_webhook(request: Request):
             return {"status": "error", "message": "missing user_id"}
 
         # сохраняем в базу
-        await add_premium_user(int(user_id))
+        await add_premium(int(user_id))
 
         print(f"✨ Premium activated for user: {user_id}")
         return {"status": "ok"}
@@ -999,9 +1015,15 @@ def get_main_menu(context):
 
     # Добавляем кнопку Premium, только если пользователь НЕ премиум
     if not context.user_data.get("is_premium", False):
+        user_id = context._user_id  # безопасный доступ к telegram user ID
+
+        gumroad_url = f"https://linguavoiceai.gumroad.com/l/ai_mike?user_id={user_id}"
+
         keyboard.append([
-            InlineKeyboardButton("💎 Remove all Limits", callback_data="show_premium_plans")
+            InlineKeyboardButton("💎 Get Premium (Gumroad)", url=gumroad_url)
         ])
+
+
 
     # Основные функции — всегда доступны
     keyboard.append([
