@@ -21,6 +21,45 @@ from fastapi import FastAPI, Request
 import uvicorn
 import threading
 import os
+import asyncpg
+import asyncio
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+
+async def init_db():
+    """Создаёт подключение к БД и таблицу, если её нет."""
+    global db_pool
+    db_pool = await asyncpg.create_pool(DATABASE_URL)
+
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS premium_users (
+                user_id BIGINT PRIMARY KEY
+            );
+        """)
+
+    print("🗄 PostgreSQL initialized and premium_users table ready.")
+
+
+async def add_premium(user_id: int):
+    """Добавляет пользователя в таблицу Premium."""
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO premium_users (user_id)
+            VALUES ($1)
+            ON CONFLICT DO NOTHING;
+        """, user_id)
+
+
+async def is_premium(user_id: int) -> bool:
+    """Проверяет, есть ли пользователь в Premium."""
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT user_id FROM premium_users WHERE user_id = $1;
+        """, user_id)
+        return row is not None
+
 print(os.environ)  # или хотя бы os.environ.keys()
 # Load env vars
 load_dotenv()
@@ -29,7 +68,7 @@ ELEVENLABS_API_KEY = os.getenv("ELEVEN_API_KEY")
 ELEVENLABS_VOICE_CLONE_URL = "https://api.elevenlabs.io/v1/voices/add"
 # читаем product ID из переменной окружения
 GUMROAD_PRODUCT_ID = os.getenv("GUMROAD_PRODUCT_ID")
-PREMIUM_USERS = {}  # временное хранилище Premium (можно заменить на БД)
+# PREMIUM_USERS = {}   временное хранилище Premium (можно заменить на БД)
 
 DEFAULT_TARGET = os.getenv("TARGET_LANG", "en")
 
@@ -68,7 +107,7 @@ async def gumroad_webhook(request: Request):
         return {"status": "wrong_product"}
 
     if tg_id:
-        PREMIUM_USERS[tg_id] = True
+        await add_premium(tg_id)
         print("✨ Premium activated for user:", tg_id)
     else:
         print("❌ No telegram ID found in webhook")
@@ -1074,7 +1113,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["currency_symbol"] = region_data['symbol']
 
     # Восстанавливаем премиум, если вебхук уже сработал
-    if PREMIUM_USERS.get(user_id):
+    if await is_premium(user_id):
         context.user_data["is_premium"] = True
     
     # Определяем язык интерфейса пользователя
@@ -2210,6 +2249,7 @@ if __name__ == "__main__":
         await app.initialize()
         await app.bot.set_webhook(WEBHOOK_URL)
         await app.start()
+        await init_db()
         print("🌐 Telegram webhook initialized")
 
     # Webhook endpoint (очень важно!)
