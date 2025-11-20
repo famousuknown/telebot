@@ -81,10 +81,9 @@ PREMIUM_REFERRAL_CODES = {
     "vip_access": "VIP User",
     # Добавляй сюда новые коды для блогеров
 }
-@dp.message_handler(commands=["premium"])
+
 async def buy_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-
     gumroad_url = f"https://linguavoiceai.gumroad.com/l/ai_mike?user_id={user_id}"
 
     keyboard = InlineKeyboardMarkup([
@@ -2262,6 +2261,7 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|.*_more|skip_target)"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
+    app.add_handler(CommandHandler("premium", buy_premium))
 
     print("🤖 Bot started...")
 
