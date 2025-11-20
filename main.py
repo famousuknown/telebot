@@ -96,34 +96,43 @@ async def buy_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=keyboard
     )
 
-app_fastapi = FastAPI()
+
+app_fastapi = FastAPI()    
 @app_fastapi.post("/gumroad")
 async def gumroad_webhook(request: Request):
     try:
-        # Пытаемся прочитать JSON (новые Gumroad webhooks)
-        try:
-            data = await request.json()
-        except:
-            data = None
+        # Gumroad always sends x-www-form-urlencoded
+        raw_body = await request.body()
+        decoded = raw_body.decode()
 
-        # Если это НЕ JSON — пробуем form-data
-        if not data:
-            form = await request.form()
-            data = dict(form)
+        # Parse URL-encoded payload
+        from urllib.parse import parse_qs
+        parsed = parse_qs(decoded)
+
+        # Convert lists to single values
+        data = {k: v[0] for k, v in parsed.items()}
 
         print("🔥 Gumroad webhook received:", data)
 
-        product_id = data.get("product_id")
-        user_id = data.get("custom_fields[user_id]") or data.get("user_id")
-        sale_id = data.get("sale_id")
+        # Read user_id
+        user_id = None
+
+        # 1) New Gumroad style:
+        if "custom_fields[user_id]" in data:
+            user_id = data["custom_fields[user_id]"]
+
+        # 2) Old style:
+        elif "user_id" in data:
+            user_id = data["user_id"]
 
         if not user_id:
+            print("❌ Missing user_id in webhook!")
             return {"status": "error", "message": "missing user_id"}
 
-        # сохраняем в базу
+        # Save to database
         await add_premium(int(user_id))
 
-        print(f"✨ Premium activated for user: {user_id}")
+        print(f"⭐️ Premium activated for user: {user_id}")
         return {"status": "ok"}
 
     except Exception as e:
