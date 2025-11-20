@@ -954,33 +954,32 @@ def get_interface_lang_keyboard():
 
 # Главное меню с акцентом на клонирование голоса
 def get_main_menu(context):
-    keyboard = [
-        # ПРЕМИУМ СЕКЦИЯ - четко выделена
-        [InlineKeyboardButton("💎 Remove all Limits", callback_data="show_premium_plans")],
-        [
-            InlineKeyboardButton("🎭 your Voice → any Language ✨", callback_data="mode_voice_clone"),
-            
-        ],
-        [InlineKeyboardButton("🎤 Text → your Voice ✨", callback_data="mode_text_to_voice")],
-        [InlineKeyboardButton("Premium Info", callback_data="clone_info")],
-        
-        # Элегантный разделитель
-        [InlineKeyboardButton("・ ・ ・ ・ ・ ・ ・ ・ ・ ・ ・ ・", callback_data="separator")],
-        
-        # БЕСПЛАТНЫЕ ФУНКЦИИ - компактно и скромно
-        [InlineKeyboardButton("📝 Text Translation", callback_data="mode_text")],
-        [
-            InlineKeyboardButton("🎤 Voice → Text", callback_data="mode_voice"),
-            InlineKeyboardButton("🔊 Voice → Voice", callback_data="mode_voice_tts")
-        ],
-        
-        # ВСПОМОГАТЕЛЬНЫЕ - минималистично
-        [
-            InlineKeyboardButton("⚙️ Settings", callback_data="settings_menu"),
-            InlineKeyboardButton("💬 Help", callback_data="help")
-        ]
-    ]
+    keyboard = []
+
+    # Добавляем кнопку Premium, только если пользователь НЕ премиум
+    if not context.user_data.get("is_premium", False):
+        keyboard.append([
+            InlineKeyboardButton("💎 Remove all Limits", callback_data="show_premium_plans")
+        ])
+
+    # Основные функции — всегда доступны
+    keyboard.append([
+        InlineKeyboardButton("🎭 your Voice → any Language ✨", callback_data="mode_voice_clone"),
+    ])
+    keyboard.append([
+        InlineKeyboardButton("🎤 Text → your Voice ✨", callback_data="mode_text_to_voice")
+    ])
+    keyboard.append([
+        InlineKeyboardButton("Premium Info", callback_data="clone_info")
+    ])
+
+    # Разделитель
+    keyboard.append([
+        InlineKeyboardButton("・ ・ ・ ・ ・ ・ ・ ・ ・ ・ ・ ・", callback_data="separator")
+    ])
+
     return InlineKeyboardMarkup(keyboard)
+
 
 def get_settings_menu(context):
     keyboard = [
