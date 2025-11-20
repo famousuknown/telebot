@@ -82,35 +82,39 @@ PREMIUM_REFERRAL_CODES = {
     # Добавляй сюда новые коды для блогеров
 }
 app_fastapi = FastAPI()
-
 @app_fastapi.post("/gumroad")
 async def gumroad_webhook(request: Request):
-    form = await request.form()
-    data = dict(form)
-
-    print("🔥 Gumroad webhook:", data)
-
-    tg_id = None
-    if "custom_fields[user_id]" in data:
+    try:
+        # Пытаемся прочитать JSON (новые Gumroad webhooks)
         try:
-            tg_id = int(data["custom_fields[user_id]"])
+            data = await request.json()
         except:
-            pass
+            data = None
 
-    product_id = data.get("product_id")
+        # Если это НЕ JSON — пробуем form-data
+        if not data:
+            form = await request.form()
+            data = dict(form)
 
-    # проверяем товар
-    if product_id != GUMROAD_PRODUCT_ID:
-        print("⚠️ Wrong product ID:", product_id)
-        return {"status": "wrong_product"}
+        print("🔥 Gumroad webhook received:", data)
 
-    if tg_id:
-        await add_premium(tg_id)
-        print("✨ Premium activated for user:", tg_id)
-    else:
-        print("❌ No telegram ID found in webhook")
+        product_id = data.get("product_id")
+        user_id = data.get("custom_fields[user_id]") or data.get("user_id")
+        sale_id = data.get("sale_id")
 
-    return {"status": "ok"}
+        if not user_id:
+            return {"status": "error", "message": "missing user_id"}
+
+        # сохраняем в базу
+        await add_premium_user(int(user_id))
+
+        print(f"✨ Premium activated for user: {user_id}")
+        return {"status": "ok"}
+
+    except Exception as e:
+        print("❌ Gumroad error:", e)
+        return {"status": "error", "message": str(e)}
+
 @app_fastapi.post("/telegram")
 async def telegram_webhook(request: Request):
     try:
