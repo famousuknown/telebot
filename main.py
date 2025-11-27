@@ -84,16 +84,17 @@ PREMIUM_REFERRAL_CODES = {
 
 async def buy_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    gumroad_url = f"https://linguavoiceai.gumroad.com/l/ai_mike?user_id={user_id}"
+    gumroad_url = f"https://linguavoiceai.gumroad.com/l/premium_monthly?user_id={user_id}"
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("💎 Get Premium Access", url=gumroad_url)]
+        [InlineKeyboardButton("💎 Get Premium — Monthly Plan", url=gumroad_url)]
     ])
 
     await update.message.reply_text(
         "💎 Unlock unlimited features!\n\n"
         "Click the button below to purchase Premium:",
-        reply_markup=keyboard
+        reply_markup=keyboard,
+        parse_mode="Markdown
     )
 
 
@@ -111,6 +112,37 @@ async def gumroad_webhook(request: Request):
 
         # Convert lists to single values
         data = {k: v[0] for k, v in parsed.items()}
+        event = data.get("resource_name") or data.get("event")
+
+        # Если Gumroad сообщает об отмене подписки
+        if event in ("subscription_cancelled", "subscription_ended", "cancellation"):
+            user_id = (
+                data.get("custom_fields[user_id]")
+                or data.get("url_params[user_id]")
+                or data.get("user_id")
+            )
+            if user_id:
+                await remove_premium(int(user_id))
+                print(f"❌ Premium cancelled for user: {user_id}")
+            else:
+                print("⚠️ Cancellation received, but no user_id found")
+            return {"status": "ok"}
+
+        # ==== Активировать премиум, если это подписка ====
+        if event in ("subscription_signup", "charge"):
+            user_id = (
+                data.get("custom_fields[user_id]")
+                or data.get("url_params[user_id]")
+                or data.get("user_id")
+            )
+
+            if user_id:
+                await add_premium(int(user_id))
+                print(f"⭐️ Subscription premium activated for user: {user_id}")
+            else:
+                print("⚠️ Subscription event received, but no user_id found")
+
+            return {"status": "ok"}    
 
         print("🔥 Gumroad webhook received:", data)
 
