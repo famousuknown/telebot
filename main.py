@@ -1057,7 +1057,7 @@ def get_main_menu(context):
     if not context.user_data.get("is_premium", False):
         user_id = context._user_id  # безопасный доступ к telegram user ID
 
-        gumroad_url = f"https://linguavoiceai.gumroad.com/l/ai_mike?user_id={user_id}"
+        gumroad_url = f"https://linguavoiceai.gumroad.com/l/premium_monthly?user_id={user_id}"
 
         keyboard.append([
             InlineKeyboardButton("💎 Get Premium (Gumroad)", url=gumroad_url)
