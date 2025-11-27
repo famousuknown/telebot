@@ -94,7 +94,7 @@ async def buy_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "💎 Unlock unlimited features!\n\n"
         "Click the button below to purchase Premium:",
         reply_markup=keyboard,
-        parse_mode="Markdown
+        parse_mode="Markdown"
     )
 
 
