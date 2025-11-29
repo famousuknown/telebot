@@ -27,20 +27,60 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 async def init_db():
-    """Создаёт подключение к БД и таблицу, если её нет."""
+    """Создаёт подключение к БД и таблицы, если их нет."""
     global db_pool
     db_pool = await asyncpg.create_pool(DATABASE_URL)
 
     async with db_pool.acquire() as conn:
+
+        # Таблица премиум-пользователей
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS premium_users (
                 user_id BIGINT PRIMARY KEY
             );
         """)
 
-    print("🗄 PostgreSQL initialized and premium_users table ready.")
+        # Таблица клонированных голосов
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS cloned_voices (
+                user_id BIGINT PRIMARY KEY,
+                voice_id TEXT NOT NULL,
+                source_lang TEXT,
+                target_lang TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+        """)
 
+    print("🗄 PostgreSQL initialized. premium_users & cloned_voices tables ready.")
 
+async def save_cloned_voice(user_id: int, voice_id: str, src: str, tgt: str):
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO cloned_voices (user_id, voice_id, source_lang, target_lang)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (user_id) DO UPDATE SET
+                voice_id = EXCLUDED.voice_id,
+                source_lang = EXCLUDED.source_lang,
+                target_lang = EXCLUDED.target_lang,
+                created_at = NOW();
+        """, user_id, voice_id, src, tgt)
+
+async def get_cloned_voice(user_id: int):
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT voice_id, source_lang, target_lang
+            FROM cloned_voices
+            WHERE user_id = $1;
+        """, user_id)
+        return row
+
+async def delete_cloned_voice(user_id: int):
+    """Удаляет клонированный голос (используется если нужно сбросить)."""
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            DELETE FROM cloned_voices WHERE user_id = $1;
+        """, user_id)
+        
 async def add_premium(user_id: int):
     """Добавляет пользователя в таблицу Premium."""
     async with db_pool.acquire() as conn:
@@ -48,6 +88,14 @@ async def add_premium(user_id: int):
             INSERT INTO premium_users (user_id)
             VALUES ($1)
             ON CONFLICT DO NOTHING;
+        """, user_id)
+
+async def remove_premium(user_id: int):
+    """Удаляет пользователя из таблицы Premium."""
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            DELETE FROM premium_users
+            WHERE user_id = $1;
         """, user_id)
 
 
@@ -102,74 +150,88 @@ app_fastapi = FastAPI()
 @app_fastapi.post("/gumroad")
 async def gumroad_webhook(request: Request):
     try:
-        # Gumroad always sends x-www-form-urlencoded
-        raw_body = await request.body()
-        decoded = raw_body.decode()
+        # Gumroad sends x-www-form-urlencoded
+        raw = await request.body()
+        decoded = raw.decode()
 
-        # Parse URL-encoded payload
         from urllib.parse import parse_qs
         parsed = parse_qs(decoded)
 
-        # Convert lists to single values
+        # flatten lists
         data = {k: v[0] for k, v in parsed.items()}
-        event = data.get("resource_name") or data.get("event")
+        print("📨 Gumroad webhook:", data)
 
-        # Если Gumroad сообщает об отмене подписки
-        if event in ("subscription_cancelled", "subscription_ended", "cancellation"):
-            user_id = (
-                data.get("custom_fields[user_id]")
-                or data.get("url_params[user_id]")
-                or data.get("user_id")
-            )
-            if user_id:
-                await remove_premium(int(user_id))
-                print(f"❌ Premium cancelled for user: {user_id}")
-            else:
-                print("⚠️ Cancellation received, but no user_id found")
-            return {"status": "ok"}
+        # detect event
+        event = (
+            data.get("resource_name")
+            or data.get("event")
+            or data.get("notification_type")
+        )
 
-        # ==== Активировать премиум, если это подписка ====
-        if event in ("subscription_signup", "charge"):
-            user_id = (
-                data.get("custom_fields[user_id]")
-                or data.get("url_params[user_id]")
-                or data.get("user_id")
-            )
-
-            if user_id:
-                await add_premium(int(user_id))
-                print(f"⭐️ Subscription premium activated for user: {user_id}")
-            else:
-                print("⚠️ Subscription event received, but no user_id found")
-
-            return {"status": "ok"}    
-
-        print("🔥 Gumroad webhook received:", data)
-
-        # Read user_id
-        user_id = None
-
-        # 1) New Gumroad style:
-        if "custom_fields[user_id]" in data:
-            user_id = data["custom_fields[user_id]"]
-
-        # 2) Old style:
-        elif "user_id" in data:
-            user_id = data["user_id"]
+        # Extract telegram user_id
+        user_id = (
+            data.get("custom_fields[user_id]")
+            or data.get("url_params[user_id]")
+            or data.get("user_id")
+        )
 
         if not user_id:
-            print("❌ Missing user_id in webhook!")
-            return {"status": "error", "message": "missing user_id"}
+            print("⚠️ Gumroad webhook: No user_id found")
+            return {"status": "ok"}
 
-        # Save to database
-        await add_premium(int(user_id))
+        user_id = int(user_id)
 
-        print(f"⭐️ Premium activated for user: {user_id}")
+        # ====================================================
+        # 🔴 1. SUBSCRIPTION CANCELLED
+        # ====================================================
+        if event in ("subscription_cancelled", "subscription_ended", "cancellation"):
+            print(f"❌ Subscription cancelled for {user_id}")
+            await remove_premium(user_id)
+            return {"status": "ok"}
+
+        # ====================================================
+        # 🔴 2. PAYMENT FAILED
+        # ====================================================
+        if event in ("charge_failed", "failed_payment", "payment_failed"):
+            print(f"💀 Payment failed for user {user_id} – removing premium")
+            await remove_premium(user_id)
+            return {"status": "ok"}
+
+        # ====================================================
+        # 🔴 3. SUBSCRIPTION REFUND
+        # ====================================================
+        if data.get("refunded") == "true":
+            print(f"💸 REFUND detected → removing premium for {user_id}")
+            await remove_premium(user_id)
+            return {"status": "ok"}
+
+        # ====================================================
+        # 🔴 4. DISPUTE
+        # ====================================================
+        if data.get("disputed") == "true":
+            print(f"⚠️ DISPUTE opened – removing premium for {user_id}")
+            await remove_premium(user_id)
+            return {"status": "ok"}
+
+        # ====================================================
+        # 🟢 5. SUBSCRIPTION SIGNUP OR SUCCESSFUL CHARGE
+        # ====================================================
+        if event in ("subscription_signup", "charge", "sale"):
+            print(f"⭐️ Premium activated for user {user_id}")
+            await add_premium(user_id)
+            return {"status": "ok"}
+
+        # ====================================================
+        # 🟡 Unknown event
+        # ====================================================
+        print(f"🤷 Unknown Gumroad event '{event}', but activating premium as fallback")
+        await add_premium(user_id)
         return {"status": "ok"}
 
     except Exception as e:
-        print("❌ Gumroad error:", e)
+        print("❌ Gumroad webhook error:", e)
         return {"status": "error", "message": str(e)}
+
 
 @app_fastapi.post("/telegram")
 async def telegram_webhook(request: Request):
@@ -2083,7 +2145,12 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
                 
-            existing = context.user_data.get("cloned_voice_id")
+            db_voice = await get_cloned_voice(user_id)
+            if db_voice:
+                existing = db_voice["voice_id"]
+            else:
+                existing = None
+
             
             if existing:
                 # Голос уже клонирован
@@ -2114,7 +2181,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if voice_id:
                 increment_voice_cloning_count(context)
-                context.user_data["cloned_voice_id"] = voice_id
+                await save_cloned_voice(user_id, voice_id, src, tgt)
                 
                 # Обновляем или удаляем processing message
                 try:
