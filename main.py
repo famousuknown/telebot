@@ -80,7 +80,7 @@ async def delete_cloned_voice(user_id: int):
         await conn.execute("""
             DELETE FROM cloned_voices WHERE user_id = $1;
         """, user_id)
-        
+
 async def add_premium(user_id: int):
     """Добавляет пользователя в таблицу Premium."""
     async with db_pool.acquire() as conn:
@@ -2147,7 +2147,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
             db_voice = await get_cloned_voice(user_id)
             if db_voice:
-                existing = db_voice["voice_id"]
+                context.user_data["cloned_voice_id"] = db_voice["voice_id"]
             else:
                 existing = None
 
@@ -2181,8 +2181,14 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if voice_id:
                 increment_voice_cloning_count(context)
+
+                # 🆕 Сохраняем voice_id в RAM (context)
+                context.user_data["cloned_voice_id"] = voice_id
+
+                # 🆕 Сохраняем voice_id в PostgreSQL
                 await save_cloned_voice(user_id, voice_id, src, tgt)
-                
+                print(f"💾 Saved cloned voice for user {user_id}: {voice_id}")
+
                 # Обновляем или удаляем processing message
                 try:
                     await processing_msg.edit_text(get_text(context, "generating_cloned"))
@@ -2190,7 +2196,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     # Если не удалось отредактировать, отправляем новое
                     await processing_msg.delete()
                     processing_msg = await update.message.reply_text(get_text(context, "generating_cloned"))
-                
+                            
                 synth_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
                 headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
                 
