@@ -2147,7 +2147,8 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
             db_voice = await get_cloned_voice(user_id)
             if db_voice:
-                context.user_data["cloned_voice_id"] = db_voice["voice_id"]
+                existing = db_voice["voice_id"]
+                context.user_data["cloned_voice_id"] = existing
             else:
                 existing = None
 
