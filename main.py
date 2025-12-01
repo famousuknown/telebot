@@ -1140,7 +1140,7 @@ def get_main_menu(context):
     # 👉 Новая кнопка отмены — только для премиум
     if context.user_data.get("is_premium", False):
         keyboard.append([
-            InlineKeyboardButton("❌ Cancel Subscription", url="https://gumroad.com/subscriptions")
+            InlineKeyboardButton("❌ Cancel Subscription", url="https://app.gumroad.com/library")
         ])
 
     # Разделитель
