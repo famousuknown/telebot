@@ -1137,9 +1137,8 @@ def get_main_menu(context):
     keyboard.append([
         InlineKeyboardButton("Premium Info", callback_data="clone_info")
     ])
-    user_id = update.effective_user.id
-    premium = await is_premium(user_id)
-    if premium:
+    # 👉 Новая кнопка отмены — только для премиум
+    if context.user_data.get("is_premium", False):
         keyboard.append([
             InlineKeyboardButton("❌ Cancel Subscription", url="https://gumroad.com/subscriptions")
         ])
