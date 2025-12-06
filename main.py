@@ -1313,20 +1313,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def back_to_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
-
-    # Обязательно отвечаем callback’у,
-    # чтобы Telegram не показал «крутящийся часик»
-    await query.answer()
-
-    # 🔥 ФИКС: загружаем голос из базы, чтобы бот его не забывал
-    db_voice = await get_cloned_voice(user_id)
-    if db_voice:
-        context.user_data["cloned_voice_id"] = db_voice["voice_id"]
-
-    # Показываем главное меню
-    return await show_main_menu(update, context)
+    # Если пришло как callback_query (кнопка)
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.message.edit_text(
+            get_status_text(context),
+            reply_markup=get_main_menu(context)
+        )
+    else:
+        # fallback (если вызвано как обычная команда)
+        await update.message.reply_text(
+            get_status_text(context),
+            reply_markup=get_main_menu(context)
+        )
 
 # Handle mode selection callbacks
 async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
