@@ -1815,7 +1815,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         voice=af, 
                         caption=caption,
                         parse_mode="Markdown",
-                        reply_markup=get_back_button(context)
+                        reply_markup=None
                     )
                 
                 # Если текст очень длинный, отправляем его отдельно
@@ -2143,7 +2143,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             caption = get_text(context, "voice_caption", src_lang=src_display, tgt_lang=tgt_display)
             with open(tmp_file_path, "rb") as audio_file:
-                await update.message.reply_voice(voice=audio_file, caption=caption, reply_markup=get_back_button(context))
+                await update.message.reply_voice(voice=audio_file, caption=caption, reply_markup=None)
                 
             # Отправляем текст отдельно если он длинный
             if len(text) > 100 or len(translated) > 100:
@@ -2273,7 +2273,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     # Отправляем результат
                     caption = get_text(context, "cloned_voice_caption", src_lang=src_display, tgt_lang=tgt_display)
                     with open(tmp_out_path, "rb") as af:
-                        await update.message.reply_voice(voice=af, caption=caption, reply_markup=get_back_button(context))
+                        await update.message.reply_voice(voice=af, caption=caption, reply_markup=None)
                     
                     # Детали отдельно если текст длинный
                     info_text = f"""{get_text(context, "original", text=text)}
