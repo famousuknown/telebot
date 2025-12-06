@@ -1753,7 +1753,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         # Используем функцию проверки Text → Voice
         user_id = update.effective_user.id
-        can_use, limit_msg = check_text_to_voice_limit(context, user_id)
+        # Премиум = пропускаем лимиты НАВСЕГДА
+        if context.user_data.get("is_premium", False):
+            can_use = True
+        else:
+            can_use, limit_msg = check_voice_cloning_limit(context, user_id)
         
         if not can_use:
             await update.message.reply_text(
@@ -2165,7 +2169,11 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # 🆕 ИСПРАВЛЕНО: Используем новую функцию проверки клонирования
             user_id = update.effective_user.id
-            can_use, limit_msg = check_voice_cloning_limit(context, user_id)
+            # Премиум = пропускаем лимиты НАВСЕГДА
+            if context.user_data.get("is_premium", False):
+                can_use = True
+            else:
+                can_use, limit_msg = check_voice_cloning_limit(context, user_id)
             
             if not can_use:
                 await processing_msg.edit_text(
