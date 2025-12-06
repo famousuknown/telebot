@@ -2305,6 +2305,22 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_back_button(context)
         )
 
+async def preload_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not user:
+        return
+
+    user_id = user.id
+
+    # Загружаем премиум-статус из базы
+    is_premium_user = await is_premium(user_id)
+
+    # Сохраняем в RAM
+    context.user_data["is_premium"] = is_premium_user
+
+    # Загружаем другие данные, если надо
+    # cloned_voice_id, lang settings, etc — по желанию        
+
 def get_user_country_by_ip():
     """Определяет страну пользователя по IP адресу"""
     try:
@@ -2406,6 +2422,8 @@ if __name__ == "__main__":
 
     # регистрируем handlers
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.ALL, preload_user), group=-1)
+    app.add_handler(CallbackQueryHandler(preload_user), group=-1)
     app.add_handler(CallbackQueryHandler(back_to_menu_handler, pattern="back_to_menu"))
     app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_text_to_voice|mode_voice_clone|mode_text|mode_voice|mode_voice_tts|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface|clone_info|separator|show_premium_plans|payment_region_|buy_premium_)"))
     app.add_handler(CallbackQueryHandler(handle_clone_setup, pattern="^(clone_src_|clone_tgt_|clone_.*_more)"))
