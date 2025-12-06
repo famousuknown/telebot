@@ -1193,7 +1193,11 @@ def get_status_text(context):
     mode_display = mode_names.get(mode, get_text(context, "mode_not_selected"))
     
     # 🆕 ИСПРАВЛЕНО: Детальная информация о лимитах
-    attempts_info = get_remaining_attempts_detailed(context)
+    # 🆕 Исправление: премиум всегда без лимитов
+    if context.user_data.get("is_premium"):
+        attempts_info = "All unlimited ✨"
+    else:
+        attempts_info = get_remaining_attempts_detailed(context)
     
     # Региональная информация
     region_info = f"🌍 **Region:** {user_region} ({user_country}) {currency_symbol}"
