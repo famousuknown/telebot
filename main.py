@@ -1229,7 +1229,11 @@ def convert_lang_code_for_translation(lang_code):
         return lang_code
 # /start handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     user_id = update.effective_user.id
+    db_voice = await get_cloned_voice(user_id)
+    if db_voice:
+        context.user_data["cloned_voice_id"] = db_voice["voice_id"]
     
     # Определяем регион пользователя по IP
     region_data = determine_user_region()
@@ -1307,6 +1311,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=get_main_menu(context),
     )
+
+async def back_to_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.from_user.id
+
+    # Обязательно отвечаем callback’у,
+    # чтобы Telegram не показал «крутящийся часик»
+    await query.answer()
+
+    # 🔥 ФИКС: загружаем голос из базы, чтобы бот его не забывал
+    db_voice = await get_cloned_voice(user_id)
+    if db_voice:
+        context.user_data["cloned_voice_id"] = db_voice["voice_id"]
+
+    # Показываем главное меню
+    return await show_main_menu(update, context)
+
 # Handle mode selection callbacks
 async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -2378,6 +2399,7 @@ if __name__ == "__main__":
 
     # регистрируем handlers
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(back_to_menu_handler, pattern="back_to_menu"))
     app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_text_to_voice|mode_voice_clone|mode_text|mode_voice|mode_voice_tts|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface|clone_info|separator|show_premium_plans|payment_region_|buy_premium_)"))
     app.add_handler(CallbackQueryHandler(handle_clone_setup, pattern="^(clone_src_|clone_tgt_|clone_.*_more)"))
     app.add_handler(CallbackQueryHandler(handle_interface_lang, pattern="^(interface_|back_to_settings)"))
