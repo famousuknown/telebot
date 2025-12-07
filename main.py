@@ -14,17 +14,146 @@ from telegram.ext import (
     MessageHandler,
     CallbackQueryHandler,
     ContextTypes,
-    filters,
+    filters
 )
 from fastapi import FastAPI, Request
 import uvicorn
 import threading
-import os
 import asyncpg
 import asyncio
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+app_fastapi = FastAPI()
+
+# Подключение к БД
+async def get_db():
+    return await asyncpg.connect(os.getenv("DATABASE_URL"))
+
+
+# ========== 1) Покупка Premium ==========
+@app_fastapi.post("/gumroad/purchase")
+async def gumroad_purchase(request: Request):
+    data = await request.form()
+
+    # Gumroad всегда передаёт custom_fields[user_id]
+    user_id = data.get("custom_fields[user_id]")
+    if not user_id:
+        return {"status": "error", "msg": "user_id missing"}
+
+    user_id = int(user_id)
+
+    db = await get_db()
+
+    # Сохраняем Premium
+    await db.execute("""
+        INSERT INTO premium_users (user_id, is_active, purchase_date)
+        VALUES ($1, TRUE, NOW())
+        ON CONFLICT (user_id) DO UPDATE
+            SET is_active = TRUE,
+                purchase_date = NOW(),
+                cancel_date = NULL,
+                access_expires_at = NULL;
+    """, user_id)
+
+    await db.close()
+
+    # Отправить сообщение пользователю в Telegram
+    text = (
+        "🎉 *Premium Activated!*\n\n"
+        "Thank you for your support ❤️\n\n"
+        "You now have full access to:\n"
+        "✨ Unlimited voice cloning\n"
+        "✨ Unlimited Text → Voice\n"
+        "✨ Priority processing\n"
+        "✨ Faster generation speed\n\n"
+        "You're all set — enjoy the full power of AI Voice! 🚀"
+    )
+
+    await application.bot.send_message(
+        chat_id=user_id,
+        text=text,
+        parse_mode="Markdown"
+    )
+
+    return {"status": "ok"}
+
+# ========== 2) Отмена Premium ==========
+@app_fastapi.post("/gumroad/cancel")
+async def gumroad_cancel(request: Request):
+    data = await request.form()
+
+    user_id = data.get("custom_fields[user_id]")
+    if not user_id:
+        return {"status": "error", "msg": "user_id missing"}
+
+    user_id = int(user_id)
+
+    next_charge = data.get("next_charge_date")  # формат: "2025-01-18T00:00:00Z"
+
+    if next_charge:
+        expires = datetime.fromisoformat(next_charge.replace("Z", "+00:00"))
+    else:
+        # если не пришло — деактивируем мгновенно
+        expires = datetime.utcnow()
+
+    db = await get_db()
+
+    await db.execute("""
+        UPDATE premium_users
+        SET is_active = FALSE,
+            cancel_date = NOW(),
+            access_expires_at = $1
+        WHERE user_id = $2;
+    """, expires, user_id)
+
+    await db.close()
+
+    # сообщение пользователю
+    msg = (
+        "❌ *Premium Subscription Cancelled*\n\n"
+        f"Your Premium access will remain active until:\n"
+        f"*{expires.strftime('%Y-%m-%d %H:%M')}*\n\n"
+        "After this date, your account will return to the free plan.\n\n"
+        "Thank you for being with us 💙"
+    )
+
+    await application.bot.send_message(
+        chat_id=user_id,
+        text=msg,
+        parse_mode="Markdown"
+    )
+
+    return {"status": "ok"}
+
+async def deactivate_expired_premium():
+    db = await get_db()
+
+    rows = await db.fetch("""
+        SELECT user_id FROM premium_users
+        WHERE is_active = FALSE
+        AND access_expires_at < NOW();
+    """)
+
+    for row in rows:
+        uid = row["user_id"]
+
+        # удаляем premium
+        await db.execute("""
+            DELETE FROM premium_users WHERE user_id = $1;
+        """, uid)
+
+        # уведомляем
+        await application.bot.send_message(
+            chat_id=uid,
+            text="⏳ Premium has ended."
+        )
+
+    await db.close()
+
+# 🔁 Job для JobQueue: просто вызывает deactivate_expired_premium
+async def check_expired_premium_job(context: ContextTypes.DEFAULT_TYPE):
+    await deactivate_expired_premium()
 
 async def init_db():
     """Создаёт подключение к БД и таблицы, если их нет."""
@@ -36,8 +165,13 @@ async def init_db():
         # Таблица премиум-пользователей
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS premium_users (
-                user_id BIGINT PRIMARY KEY
+                user_id BIGINT PRIMARY KEY,
+                is_active BOOLEAN DEFAULT TRUE,
+                purchase_date TIMESTAMP,
+                cancel_date TIMESTAMP,
+                access_expires_at TIMESTAMP
             );
+
         """)
 
         # Таблица клонированных голосов
@@ -117,6 +251,14 @@ GUMROAD_PRODUCT_ID = os.getenv("GUMROAD_PRODUCT_ID")
 # PREMIUM_USERS = {}   временное хранилище Premium (можно заменить на БД)
 
 DEFAULT_TARGET = os.getenv("TARGET_LANG", "en")
+application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
+# 🔁 РЕГИСТРИРУЕМ JOB, КОТОРЫЙ БУДЕТ ЧИСТИТЬ ПРОСРОЧЕННЫЙ PREMIUM
+application.job_queue.run_repeating(
+    check_expired_premium_job,
+    interval=3600,   # каждые 60 минут
+    first=60         # первая проверка через 60 секунд после старта бота
+)
 
 recognizer = sr.Recognizer()
 # Реферальная система и лимиты
@@ -146,7 +288,7 @@ async def buy_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-app_fastapi = FastAPI()    
+   
 @app_fastapi.post("/gumroad")
 async def gumroad_webhook(request: Request):
     try:
@@ -240,10 +382,10 @@ async def telegram_webhook(request: Request):
         data = await request.json()
         print("📩 Raw data:", data)
 
-        update = Update.de_json(data, app.bot)
+        update = Update.de_json(data, application.bot)
         print("🛠 Update parsed:", update)
 
-        await app.process_update(update)
+        await application.process_update(update)
         print("✔ Update processed")
 
         return {"status": "ok"}
@@ -2421,18 +2563,18 @@ if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     # регистрируем handlers
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.ALL, preload_user), group=-1)
-    app.add_handler(CallbackQueryHandler(preload_user), group=-1)
-    app.add_handler(CallbackQueryHandler(back_to_menu_handler, pattern="back_to_menu"))
-    app.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_text_to_voice|mode_voice_clone|mode_text|mode_voice|mode_voice_tts|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface|clone_info|separator|show_premium_plans|payment_region_|buy_premium_)"))
-    app.add_handler(CallbackQueryHandler(handle_clone_setup, pattern="^(clone_src_|clone_tgt_|clone_.*_more)"))
-    app.add_handler(CallbackQueryHandler(handle_interface_lang, pattern="^(interface_|back_to_settings)"))
-    app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|back_to_menu|skip_target)"))
-    app.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|.*_more|skip_target)"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    app.add_handler(MessageHandler(filters.VOICE, handle_voice))
-    app.add_handler(CommandHandler("premium", buy_premium))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.ALL, preload_user), group=-1)
+    application.add_handler(CallbackQueryHandler(preload_user), group=-1)
+    application.add_handler(CallbackQueryHandler(back_to_menu_handler, pattern="back_to_menu"))
+    application.add_handler(CallbackQueryHandler(handle_mode_selection, pattern="^(mode_text_to_voice|mode_voice_clone|mode_text|mode_voice|mode_voice_tts|settings_menu|change_source|change_target|back_to_menu|help|reset_clone|change_interface|clone_info|separator|show_premium_plans|payment_region_|buy_premium_)"))
+    application.add_handler(CallbackQueryHandler(handle_clone_setup, pattern="^(clone_src_|clone_tgt_|clone_.*_more)"))
+    application.add_handler(CallbackQueryHandler(handle_interface_lang, pattern="^(interface_|back_to_settings)"))
+    application.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|back_to_menu|skip_target)"))
+    application.add_handler(CallbackQueryHandler(handle_lang_choice, pattern="^(src_|tgt_|.*_more|skip_target)"))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    application.add_handler(MessageHandler(filters.VOICE, handle_voice))
+    application.add_handler(CommandHandler("premium", buy_premium))
 
     print("🤖 Bot started...")
 
@@ -2441,9 +2583,9 @@ if __name__ == "__main__":
 
     @app_fastapi.on_event("startup")
     async def startup():
-        await app.initialize()
-        await app.bot.set_webhook(WEBHOOK_URL)
-        await app.start()
+        await application.initialize()
+        await application.bot.set_webhook(WEBHOOK_URL)
+        await application.start()
         await init_db()
         print("🌐 Telegram webhook initialized")
 
@@ -2451,8 +2593,8 @@ if __name__ == "__main__":
     @app_fastapi.post("/telegram")
     async def telegram_webhook(request: Request):
         data = await request.json()
-        update = Update.de_json(data, app.bot)
-        await app.process_update(update)
+        update = Update.de_json(data, application.bot)
+        await application.process_update(update)
         return {"status": "ok"}
 
     # запускаем ТОЛЬКО FastAPI
