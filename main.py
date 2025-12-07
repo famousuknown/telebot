@@ -151,6 +151,20 @@ async def deactivate_expired_premium():
 
     await db.close()
 
+async def premium_watcher_loop():
+    while True:
+        try:
+            await deactivate_expired_premium()
+        except Exception as e:
+            print("❌ Premium watcher error:", e)
+
+        await asyncio.sleep(3600)  # проверка каждый час
+
+
+def start_premium_watcher():
+    loop = asyncio.get_event_loop()
+    loop.create_task(premium_watcher_loop())
+
 # 🔁 Job для JobQueue: просто вызывает deactivate_expired_premium
 async def check_expired_premium_job(context: ContextTypes.DEFAULT_TYPE):
     await deactivate_expired_premium()
@@ -252,13 +266,8 @@ GUMROAD_PRODUCT_ID = os.getenv("GUMROAD_PRODUCT_ID")
 
 DEFAULT_TARGET = os.getenv("TARGET_LANG", "en")
 application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+start_premium_watcher()
 
-# 🔁 РЕГИСТРИРУЕМ JOB, КОТОРЫЙ БУДЕТ ЧИСТИТЬ ПРОСРОЧЕННЫЙ PREMIUM
-application.job_queue.run_repeating(
-    check_expired_premium_job,
-    interval=3600,   # каждые 60 минут
-    first=60         # первая проверка через 60 секунд после старта бота
-)
 
 recognizer = sr.Recognizer()
 # Реферальная система и лимиты
