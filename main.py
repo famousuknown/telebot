@@ -1891,13 +1891,20 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
    
     # Обрабатываем режим "Текст → Голос"
     if mode == "mode_text_to_voice":
-        # Проверяем есть ли клонированный голос
+
+        # 🔄 ВАЖНО: восстановление voice_id из БД
+        if not context.user_data.get("cloned_voice_id"):
+            db_voice = await get_cloned_voice(update.effective_user.id)
+            if db_voice:
+                context.user_data["cloned_voice_id"] = db_voice["voice_id"]
+
+        # ❌ Если всё ещё нет — реально нет
         if not context.user_data.get("cloned_voice_id"):
             await update.message.reply_text(
                 get_text(context, "need_cloned_voice_for_text"),
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🎭 Clone Voice", callback_data="mode_voice_clone")]
+                    [InlineKeyboardButton("🎤 Clone Voice", callback_data="mode_voice_clone")]
                 ])
             )
             return
