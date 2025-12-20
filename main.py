@@ -1463,25 +1463,36 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_main_menu(context),
     )
 
-async def back_to_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Если пришло как callback_query (кнопка)
+async def back_to_menu_handler(update, context):
+    user_id = update.effective_user.id
+    await sync_user_state(context, user_id)
+
     if update.callback_query:
         await update.callback_query.answer()
         await update.callback_query.message.edit_text(
             get_status_text(context),
             reply_markup=get_main_menu(context)
         )
+
+async def sync_user_state(context: ContextTypes.DEFAULT_TYPE, user_id: int):
+    # premium из БД
+    context.user_data["is_premium"] = await is_premium(user_id)
+
+    # cloned voice из БД
+    row = await get_cloned_voice(user_id)
+    if row:
+        context.user_data["cloned_voice_id"] = row["voice_id"]
+        context.user_data["source_lang"] = row["source_lang"]
+        context.user_data["target_lang"] = row["target_lang"]
     else:
-        # fallback (если вызвано как обычная команда)
-        await update.message.reply_text(
-            get_status_text(context),
-            reply_markup=get_main_menu(context)
-        )
+        context.user_data.pop("cloned_voice_id", None)
 
 # Handle mode selection callbacks
 async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
+    await sync_user_state(context, user_id)
     data = query.data
     print(f"🎯 Received callback: {data}")
     
@@ -1665,6 +1676,8 @@ async def handle_mode_selection(update: Update, context: ContextTypes.DEFAULT_TY
 async def handle_clone_setup(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
+    await sync_user_state(context, user_id)
     data = query.data
     if data == "clone_step2":
         src_lang = get_lang_display_name(context.user_data.get("source_lang", ""))
