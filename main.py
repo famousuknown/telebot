@@ -1482,8 +1482,9 @@ async def sync_user_state(context: ContextTypes.DEFAULT_TYPE, user_id: int):
     row = await get_cloned_voice(user_id)
     if row:
         context.user_data["cloned_voice_id"] = row["voice_id"]
-        context.user_data["source_lang"] = row["source_lang"]
-        context.user_data["target_lang"] = row["target_lang"]
+
+        # context.user_data["source_lang"] = row["source_lang"]
+        # context.user_data["target_lang"] = row["target_lang"]
     else:
         context.user_data.pop("cloned_voice_id", None)
 
@@ -2626,7 +2627,7 @@ if __name__ == "__main__":
         await application.process_update(update)
         return {"status": "ok"}
 
-    # запускаем ТОЛЬКО FastAPI
+    # запускаем ТОЛЬКО FastAPIeli
     uvicorn.run(app_fastapi, host="0.0.0.0", port=8000)
 
 
